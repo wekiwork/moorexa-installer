@@ -1,0 +1,54 @@
+<?php 
+
+// set the platform type
+define('SYSTEM_TYPE', 'services');
+
+// Set the default folder for the framework. 
+// This would be useful when we need to update your version when there is a fix.
+define('MOOREXA_INSTALLER_DIR', 'framework/');
+
+// load core directory 
+$GLOBALCORE = MOOREXA_INSTALLER_DIR . 'core'; 
+
+// load packagers directory
+$PACKAGERS_DIRECTORY_ARRAY = [
+    MOOREXA_INSTALLER_DIR . 'packagers/Moorexa/CLI' => 'Packager/Moorexa', // trim off
+    MOOREXA_INSTALLER_DIR . 'packagers/Moorexa/MicroService'  => 'Packager/Moorexa', // trim off
+];
+
+// Source base directory
+$SOURCE_BASE_PATH = MOOREXA_INSTALLER_DIR . 'source';
+
+// @Override for directories
+define('DIRECTORY_OVERRIDE', [
+
+    // when the system requests for ?
+    'PATH_TO_KONSOLE' => [
+        // check here first
+        'PATH_TO_DIST' => '/console/'
+    ],
+
+    // and when 
+    'PATH_TO_SERVICES' => [
+        // check here first
+        'PATH_TO_DIST' => '/services/'
+    ],
+
+    // and when
+    'PATH_TO_EXTRA' => [
+        // check here first
+        'PATH_TO_DIST' => '/extra/'
+    ],
+
+    // and when
+    'PATH_TO_UTILITY' => [
+        // check here first
+        'PATH_TO_DIST' => '/utility/'
+    ],
+
+    // and when
+    'PATH_TO_STORAGE' => [
+        // check here first
+        'PATH_TO_DIST' => '/utility/Storage/'
+    ]
+]);
