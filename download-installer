@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php 
+
+// get the installer file path
+$filepath = __DIR__ . '/installer.php';
+
+header('Content-Description: File Transfer');
+header('Content-Type: application/octet-stream');
+header('Content-Disposition: attachment; filename="'.basename($filepath).'"');
+header('Expires: 0');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+header('Content-Length: ' . filesize($filepath));
+flush(); 
+readfile($filepath);
+die();

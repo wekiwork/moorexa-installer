@@ -1,0 +1,153 @@
+#!/usr/bin/env php
+<?php
+
+// get the working directory
+define('WORKING_DIRECTORY', $_SERVER['PWD'] . '/');
+
+// get the arguments
+$argv = $_SERVER['argv'];
+
+// check for init within current directory
+$initFile = WORKING_DIRECTORY . 'init.php';
+
+// message to screen
+function screen_display($message, string $type = '')
+{
+	// reset color
+	$reset = "\033[0m";
+
+	// get type
+	$color = $type == 'error' ? "\033[31m" : ($type == 'success' ? "\033[32m" : '');
+
+	// print message
+	fwrite(STDOUT,  $color . $message . $reset . "\n");
+}
+
+
+// check if init file exists
+if (file_exists($initFile)) :
+
+	// change working directory
+	chdir(WORKING_DIRECTORY);
+
+	// require the assist file
+	return (file_exists('assist') ? include_once 'assist' : null);
+	
+endif;
+
+// command string 
+$commands = "
+Try any of this commands:\n
+(1.) moorexa create 
+(2.) moorexa update 
+(3.) moorexa create <project-name>
+(4.) moorexa create <project-name> -service
+(5.) moorexa create <project-name> -frontend
+(6.) moorexa prepare
+
+For more information, please visit www.moorexa.com";
+
+
+// not within a working project
+if (count($argv) == 1 || (isset($argv[1]) && strlen(trim($argv[1])) == 0)) return screen_display("
+Not within a working moorexa directory\n
+{$commands}
+");
+
+
+// manage request
+switch(strtolower($argv[1])) :
+
+	// create command
+	case 'create':
+
+		// get the folder name
+		$folderName = isset($argv[2]) ? $argv[2] : '';
+
+		// check for '-'
+		if (strpos($folderName, '-') !== false) :
+
+			// push to next argv
+			$argv[3] = $folderName;
+
+			// replace name
+			$folderName = '';
+
+		endif;
+
+		// get directory
+		$directory = rtrim(WORKING_DIRECTORY . $folderName, '/') . '/';
+
+		// stop if directory exists
+		if ($folderName != '' && is_dir($directory)) return screen_display('Workspace exists. Failed to overwrite', 'error');
+
+		// create folder if it doesn't exists
+		if (!is_dir($directory)) mkdir($directory);
+
+		// get the create type
+		$createType = isset($argv[3]) ? strtolower($argv[3]) : 'frontend';
+
+		// remove dash
+		$createType = ltrim($createType, '-');
+
+		// open storage
+		$storage = __DIR__ . '/storage/' . ($createType == 'service' ? 'backend' : $createType) . '.zip';
+
+		// does file exists
+		if (!file_exists($storage)) return implode("\n", [
+			screen_display('Invalid create type "'.$createType.'"', 'error'),
+			screen_display($commands)
+		]);
+
+		// file exists
+		// open zip manager
+		screen_display('Creating a blank project for "'.$createType.'"', 'success');
+
+		// get size
+		$fileSize = filesize($storage);
+
+		// print size to screen
+		screen_display('Pouring size ' . round($fileSize / 1024) . 'kb into '.$directory.'');
+
+		// load zip archive
+		$zipArchive = new ZipArchive();
+
+		// open file
+		if (!$zipArchive->open($storage)) return screen_display('Could not start extracting. It\'s possible that the .zip file has been corrupted or we dont have full permission to continue. Please run moorexa update or contact support.', 'error');
+
+		// starting extraction
+		screen_display('Starting extraction from cache', 'success');
+
+		// sleep
+		sleep(2);
+
+		// start now
+		if ($zipArchive->extractTo($directory)) $zipArchive->close();
+
+		// all good
+		screen_display('Your project has been created successfully.', 'success');
+
+		// change directory
+		$changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';
+
+		// final note
+		screen_display("\n".'So what next?'."\n". $changeDirectory .' "moorexa install" to load required dependencies, or "moorexa serve" to start development server if dependencies already exists.'."\n\n".'Thank you for building with Moorexa..');
+
+	break;
+
+	// prepare
+	case 'prepare':
+
+		// check for folder installation
+		if (!is_dir(__DIR__ . '/storage')) mkdir(__DIR__ . '/storage');
+		
+		// try to download from svn.
+
+	break;
+
+	// invalid command 
+	default:
+		screen_display('Invalid command "'.$argv[1].'"', 'error');
+		screen_display($commands);
+endswitch;
+
