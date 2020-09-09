@@ -74,8 +74,36 @@ foreach ($requirements as $target => $val) :
 
 endforeach;
 
+// get the arguments
+$argv = $_SERVER['argv'];
+
+// update flag used ?
+$updateInstaller = false;
+
 // get version from the user
 $version = 'master';
+
+// check for update flag
+foreach ($argv as $command) :
+
+	// look for --update flag
+	if (strtolower($command) == '--update') $updateInstaller = true;
+
+	// look for version
+	if (strpos($command, '--version=') !== false) :
+
+		// get the version
+		$command = explode('=', $command);
+
+		// pass the version
+		$version = end($command);
+
+	endif;
+
+endforeach;
+
+
+if (!$updateInstaller) :
 
 // ask user 
 fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we install? (Hit Enter to install the latest) : ');
@@ -85,6 +113,8 @@ $input = readInput();
 
 // assign version
 $version = $input != '' ? $input : $version;
+
+endif;
 
 // get working directory
 $workingDirectory = $_SERVER['PWD'];
@@ -100,6 +130,8 @@ $moorexaFile = $homeDirectory . '/moorexa/moorexa';
 
 // put content inside a new file
 file_put_contents($moorexaFile, file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/'.$version.'/moorexa'));
+
+if (!$updateInstaller) :
 
 // create path
 screen_display('Checking if PATH has been registered.', 'success');
@@ -132,6 +164,8 @@ endif;
 // check if path has been created
 if (file_exists($pathFile)) return screen_display('PATH Added previously. Installation would not continue.', 'error');
 
+endif;
+
 // download from github function
 function download_from_github(string $link, string $fileName, string $version = 'master')
 {
@@ -143,6 +177,9 @@ function download_from_github(string $link, string $fileName, string $version = 
 
 	// get the home directory
 	$homeDirectory = $GLOBALS['homeDirectory'];
+
+	// get updateInstaller bool
+	$updateInstaller = $GLOBALS['updateInstaller'];
 
 	// get a fake user agent
     $agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:'.$rand.'.0) Gecko/20100101 Firefox/'.$rand.'.0';
@@ -179,7 +216,16 @@ function download_from_github(string $link, string $fileName, string $version = 
             // caching begins
             screen_display('Caching master branch, please wait for the next process..', 'success');
         
-            $destination = $homeDirectory . '/moorexa/storage/'.$fileName.'.zip';
+            $destination = $homeDirectory . '/moorexa/storage/'.$version . '-' .$fileName.'.zip';
+
+            // delete existsing
+            if ($updateInstaller) :
+
+            	// check if file exists
+            	if (file_exists($destination)) unlink($destination);
+
+            endif;	
+
             $fh = fopen($destination, 'wb');
             fwrite($fh, $content);
             fclose($fh);
@@ -293,7 +339,16 @@ function download_from_github(string $link, string $fileName, string $version = 
 	                        // caching begins
 				            screen_display('Caching version '.$version.', please wait for the next process..', 'success');
 	        
-	                        $destination = $homeDirectory . '/moorexa/storage/'.$fileName.'-'.$version.'.zip';
+	                        $destination = $homeDirectory . '/moorexa/storage/'.preg_replace('/[s]+/', '', $version).'-'.$fileName.'.zip';
+
+	                        // delete existsing
+				            if ($updateInstaller) :
+
+				            	// check if file exists
+				            	if (file_exists($destination)) unlink($destination);
+				            	
+				            endif;	
+
 	                        $fh = fopen($destination, 'wb');
 	                        fwrite($fh, $content);
 	                        fclose($fh);
@@ -349,7 +404,7 @@ foreach ($repos as $link => $fileName) :
 	if (download_from_github($link, $fileName, $version)) :
 
 		// all good
-		screen_display('Package ' . $link . '['.$version.'] downloaded successfully', 'success');
+		screen_display('Package ' . $link . '['.$version.'] '.($updateInstaller ? 'updated' : 'downloaded').' successfully', 'success');
 
 		// sleep
 		sleep(1);
@@ -361,8 +416,40 @@ foreach ($repos as $link => $fileName) :
 
 endforeach;
 
+
+// download other required templates
+$requiredTemplates = [
+	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/'.$version.'/.global.config.frontend' => '.global.config.frontend',
+	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/'.$version.'/.global.config.service' => '.global.config.service',
+	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory' => 'installer_directory'
+];	
+
+
 // are we good
 if ($completed == count($repos)) :
+
+	// run download
+	foreach ($requiredTemplates as $url => $fileName) :
+
+		// get content
+		$content = file_get_contents($url);
+
+		// what do we have
+		if (strpos($content, '404') === false) :
+
+			// get file full path
+			$fileName = $homeDirectory . '/moorexa/' . $fileName;
+
+			// replace content
+			file_put_contents($fileName, $content);
+
+		endif;
+
+	endif;
+
+
+	// fresh installation
+	if (!$updateInstaller) :
 
 	// adding to system paths
 	screen_display('Adding moorexa to your system paths', 'success');
@@ -385,6 +472,12 @@ You may have to restart your terminal or try any of this commands to update your
 [Ubuntu] > source ~/.bashrc
 
 Or just go on with closing and reopening your terminal before trying \"moorexa\" command.\n\n");
+
+	else:
+
+		// update ran
+
+	endif;
 
 	// send a signal. Download was successfull
 	$ch = curl_init('http://installer.wekiwork.com');

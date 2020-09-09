@@ -23,9 +23,66 @@ function screen_display($message, string $type = '')
 	fwrite(STDOUT,  $color . $message . $reset . "\n");
 }
 
+// read line
+function readInput()
+{
+    if (PHP_OS == "WINNT") return trim(stream_get_line(STDIN, 1024));
+    
+    // not windows
+    return trim(readline());
+}
+
+// @var bool $updateInstaller
+$updateInstaller = false;
+
+// version to work with
+$version = 'master';
+
+// use the modular format
+$modular = false;
+
+// check for update flag
+foreach ($argv as $index => $command) :
+
+	// look for --update flag
+	if (strtolower($command) == 'update') $updateInstaller = true;
+
+	// look for version
+	if (strpos($command, '--version=') !== false) :
+
+		// get the version
+		$command = explode('=', $command);
+
+		// pass the version
+		$version = end($command);
+
+		// remove index
+		unset($argv[$index]);
+
+		// sort
+		sort($argv);
+
+	endif;
+
+	// look for modular flag
+	if (strtolower($command) === '--modular') :
+
+		// using modular
+		$modular = true;
+
+		// remove index
+		unset($argv[$index]);
+
+		// sort
+		sort($argv);
+
+	endif;
+
+endforeach;
+
 
 // check if init file exists
-if (file_exists($initFile)) :
+if (file_exists($initFile) && $updateInstaller === false) :
 
 	// change working directory
 	chdir(WORKING_DIRECTORY);
@@ -39,15 +96,18 @@ endif;
 $commands = "
 Try any of this commands:\n
 (1.) moorexa create 
+(1.1) moorexa create --version=v1.0
 (2.) moorexa update 
 (3.) moorexa create <project-name>
+(3.1) moorexa create <project-name> --version=v1.0
+(3.2) moorexa create <project-name> --modular
 (4.) moorexa create <project-name> -service
+(4.1) moorexa create <project-name> -service --version=v1.0
+(4.2) moorexa create <project-name> -service --modular
 (5.) moorexa create <project-name> -frontend
+(5.1) moorexa create <project-name> -frontend --version=v1.0
+(5.2) moorexa create <project-name> -frontend --modular
 (6.) moorexa prepare
-(7.) moorexa make
-(8.) moorexa make <project-name>
-(9.) moorexa make <project-name> -service
-(10.) moorexa make <project-name> -frontend
 
 For more information, please visit www.moorexa.com/doc/installer";
 
@@ -95,7 +155,7 @@ switch(strtolower($argv[1])) :
 		$createType = ltrim($createType, '-');
 
 		// open storage
-		$storage = __DIR__ . '/storage/' . ($createType == 'service' ? 'backend' : $createType) . '.zip';
+		$storage = __DIR__ . '/storage/' . ($createType == 'service' ? $version . '-moorexaMicroService' : $version . '-moorexaFrontEnd') . '.zip';
 
 		// does file exists
 		if (!file_exists($storage)) return implode("\n", [
@@ -128,6 +188,58 @@ switch(strtolower($argv[1])) :
 		// start now
 		if ($zipArchive->extractTo($directory)) $zipArchive->close();
 
+		// get the installer directory
+		$installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
+
+		// is modular ?
+		if ($modular && $folderName != '') :
+			// go back one step
+			$installerDirectory = '../' . $installerDirectory;
+		endif;
+
+		// folders we would be creating in the installer directory
+		$installerFolders = [
+			__DIR__ . '/storage/' . $version . '-moorexaCore.zip' => $installerDirectory . '/core/', 
+			__DIR__ . '/storage/' . $version . '-moorexaSource.zip' => $installerDirectory . '/source/', 
+			__DIR__ . '/storage/' . $version . '-moorexaPackager.zip' => $installerDirectory . '/packagers/', 
+		];
+
+		// create installer directory and also add core, source, and packager
+		if (!is_dir($installerDirectory)) mkdir($installerDirectory);
+
+		// create folders
+		foreach ($installerFolders as $zipFile => $extractTo) :
+
+			// folder doesn't exists ?
+			if (!is_dir($extractTo)) mkdir($extractTo);
+
+			// extract zip file into folder
+			$zip = new ZipArchive();
+
+			if ($zip->open($zipFile)) :
+
+				// extract now
+				$zip->extractTo($extractTo);
+
+			endif;
+
+			// close file
+			$zip->close();
+
+		endforeach;
+
+		// add the version
+		file_put_contents($installerDirectory . '/version', $version);
+
+		// add global config to working directory
+		$globalConfig = file_get_contents(__DIR__ . '/.global.config.' . $createType);
+
+		// update {directory}
+		$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
+
+		// add to directory
+		file_put_contents($directory . '.global.config', $globalConfig);
+
 		// all good
 		screen_display('Your project has been created successfully.', 'success');
 
@@ -146,6 +258,108 @@ switch(strtolower($argv[1])) :
 		if (!is_dir(__DIR__ . '/storage')) mkdir(__DIR__ . '/storage');
 		
 		// try to download from svn.
+
+	break;
+
+	// update 
+	case 'update':
+
+		// ask user 
+		fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we update? (Hit Enter to update your current version) : ');
+
+		// read input
+		$input = readInput();
+
+		// @var string $version
+		$version = 'master';
+
+		// get the installer_directory
+		$directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
+
+		// do we have such directory ?
+		if (is_dir(WORKING_DIRECTORY . '/' . $directory)) :
+
+			// check for version file
+			if (file_exists(WORKING_DIRECTORY . '/' . $directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $directory . '/version'));
+
+		endif;
+
+		// get the version
+		$version = $input == '' ? $version : $input;
+
+		// command 
+		$command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
+
+		// run command
+		pclose(popen($command, "w"));
+
+		// update framework directory
+		if (is_dir(WORKING_DIRECTORY . '/' . $directory)) :
+
+			// clean version
+			$versionName = preg_replace('/[s]+/', '', $version);
+
+			// files to extract
+			$filesToExtract = [
+				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip' => WORKING_DIRECTORY . '/' . $directory . '/core/',
+				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip' => WORKING_DIRECTORY . '/' . $directory . '/source/',
+				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip' => WORKING_DIRECTORY . '/' . $directory . '/packagers/',
+			];
+
+			// update user
+			screen_display('Updating framework library.');
+
+			// take a break
+			sleep(1);
+
+			// updated
+			$updated = 0;
+
+			// run update
+			foreach ($filesToExtract as $zipFile => $extractTo) :
+
+				// load zip archive
+				$zipArchive = new ZipArchive();
+
+				// open file
+				if ($zipArchive->open($zipFile)) :
+
+					// extract files
+					if ($zipArchive->extractTo($extractTo)) :
+
+						$updated++;
+						screen_display('Folder : ' . $extractTo . ' updated', 'success');
+
+					endif;
+
+				endif;
+
+				// close zip handler
+				$zipArchive->close();
+
+			endforeach;
+
+
+			// are we good ?
+			if ($updated == count($filesToExtract)) :
+
+				screen_display('Update successful');
+
+				// update version on file
+				file_put_contents(WORKING_DIRECTORY . '/' . $directory . '/version', $version);
+
+			else:
+
+				screen_display('Update was not successful', 'error');
+
+			endif;
+
+		else:
+
+			// all good
+			screen_display(($version == 'master' ? 'Master branch was updated successfully' : 'Your version ' . $version . ' was updated successfully'));
+
+		endif;
 
 	break;
 
