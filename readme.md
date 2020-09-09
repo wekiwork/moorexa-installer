@@ -11,11 +11,11 @@ The installer also gives you the convinence for creating new projects without do
 1. Open your terminal or search for ("cmd" window users)
 2. Check your PHP version with 
 ```bash
-	php ---version
+php ---version
 ```
 3. You should at least have php 7.2 installed.
 4. Copy the code below to start installation;
 ```bash
-	php -r "copy('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php', 'installer.php');"; php installer.php;
+php -r "copy('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php', 'installer.php');"; php installer.php;
 ```
 You can replace 'master' with a version number if you want to.
