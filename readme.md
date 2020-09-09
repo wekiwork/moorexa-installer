@@ -19,3 +19,4 @@ php ---version
 php -r "copy('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php', 'installer.php');"; php installer.php;
 ```
 You can replace 'master' with a version number if you want to.
+5. Paste command copied into your terminal and hit the ENTER key to start operation.
