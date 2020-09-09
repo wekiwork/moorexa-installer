@@ -386,6 +386,14 @@ You may have to restart your terminal or try any of this commands to update your
 
 Or just go on with closing and reopening your terminal before trying \"moorexa\" command.\n\n");
 
+	// send a signal. Download was successfull
+	$ch = curl_init('http://installer.wekiwork.com');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Moorexa Installer#successfull');
+    curl_exec($ch);
+    curl_close($ch);
+
 else:
 	// you may have to run this installation again
 	screen_display('Oops! We could not download all the packages to your local machine. You may have to run this installation again');
