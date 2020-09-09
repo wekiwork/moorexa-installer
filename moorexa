@@ -44,8 +44,12 @@ Try any of this commands:\n
 (4.) moorexa create <project-name> -service
 (5.) moorexa create <project-name> -frontend
 (6.) moorexa prepare
+(7.) moorexa make
+(8.) moorexa make <project-name>
+(9.) moorexa make <project-name> -service
+(10.) moorexa make <project-name> -frontend
 
-For more information, please visit www.moorexa.com";
+For more information, please visit www.moorexa.com/doc/installer";
 
 
 // not within a working project
