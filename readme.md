@@ -21,3 +21,5 @@ php -r "copy('https://raw.githubusercontent.com/wekiwork/moorexa-installer/maste
 	You can replace 'master' with a version number if you want to.
 
 5. Paste command copied into your terminal and hit the ENTER key to start operation.
+6. Wait for the process to finish
+7. Enjoy building with PHP on Moorexa..
