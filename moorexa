@@ -32,6 +32,63 @@ function readInput()
     return trim(readline());
 }
 
+/** STACK OVERFLOW (https://stackoverflow.com/questions/20117447/extract-a-whole-directory-with-ziparchive) **/
+
+//to get all the recursive paths in a array
+function dirtoarray($dir, $recursive=false) {
+    $array_items = array();
+    if (is_dir($dir)) :
+	    if ($handle = opendir($dir)) {
+	        while (false !== ($file = readdir($handle))) {
+	            if ($file != "." && $file != "..") {
+	                if (is_dir($dir. "/" . $file)) {
+	                    if($recursive) {
+	                        $array_items = array_merge($array_items, dirtoarray($dir. "/" . $file, $recursive));
+	                    }
+	                    else 
+	                    {
+	                    	$array_items[] = $dir . '/' . $file;
+	                    }
+	                } else {
+	                    $file = $dir . "/" . $file;
+	                    $array_items[] = preg_replace("/\/\//si", "/", $file);
+	                }
+	            }
+	        }
+	        closedir($handle);
+	    }
+	endif;
+    return $array_items;
+}
+
+function rcopy($src, $dst) {
+    if (file_exists ( $dst ))
+        rrmdir ( $dst );
+    if (is_dir ( $src )) {
+        mkdir ( $dst );
+        $files = scandir ( $src );
+        foreach ( $files as $file )
+            if ($file != "." && $file != "..")
+                rcopy ( "$src/$file", "$dst/$file" );
+
+    } else if (file_exists ( $src ))
+        copy ( $src, $dst );
+                    rrmdir ( $src );
+}       
+
+// Function to remove folders and files 
+function rrmdir($dir) {
+    if (is_dir($dir)) {
+        $files = scandir($dir);
+        foreach ($files as $file)
+            if ($file != "." && $file != "..") rrmdir("$dir/$file");
+        rmdir($dir);
+    }
+    else if (file_exists($dir)) unlink($dir);
+}
+
+/** STACK OVERFLOW ENDS HERE **/
+
 // @var bool $updateInstaller
 $updateInstaller = false;
 
@@ -185,8 +242,20 @@ switch(strtolower($argv[1])) :
 		// sleep
 		sleep(2);
 
+		// make a tmp direcory
+		if (!is_dir(__DIR__ . '/tmp/')) mkdir(__DIR__ . '/tmp/');
+
 		// start now
-		if ($zipArchive->extractTo($directory)) $zipArchive->close();
+		if ($zipArchive->extractTo(__DIR__ . '/tmp/')) $zipArchive->close();
+
+		// get the folder extracted
+		$folderExtracted = dirtoarray(__DIR__ . '/tmp/')[0];
+
+		// copy files
+		rcopy($folderExtracted, $directory);
+
+		// delete tmp
+		rrmdir($folderExtracted);
 
 		// get the installer directory
 		$installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
@@ -199,19 +268,19 @@ switch(strtolower($argv[1])) :
 
 		// folders we would be creating in the installer directory
 		$installerFolders = [
-			__DIR__ . '/storage/' . $version . '-moorexaCore.zip' => $installerDirectory . '/core/', 
-			__DIR__ . '/storage/' . $version . '-moorexaSource.zip' => $installerDirectory . '/source/', 
-			__DIR__ . '/storage/' . $version . '-moorexaPackager.zip' => $installerDirectory . '/packagers/', 
+			__DIR__ . '/storage/' . $version . '-moorexaCore.zip', 
+			__DIR__ . '/storage/' . $version . '-moorexaSource.zip', 
+			__DIR__ . '/storage/' . $version . '-moorexaPackager.zip', 
 		];
+		
+
+		chdir($directory);
 
 		// create installer directory and also add core, source, and packager
 		if (!is_dir($installerDirectory)) mkdir($installerDirectory);
 
 		// create folders
-		foreach ($installerFolders as $zipFile => $extractTo) :
-
-			// folder doesn't exists ?
-			if (!is_dir($extractTo)) mkdir($extractTo);
+		foreach ($installerFolders as $zipFile) :
 
 			// extract zip file into folder
 			$zip = new ZipArchive();
@@ -219,12 +288,26 @@ switch(strtolower($argv[1])) :
 			if ($zip->open($zipFile)) :
 
 				// extract now
-				$zip->extractTo($extractTo);
+				$zip->extractTo($installerDirectory);
 
 			endif;
 
 			// close file
 			$zip->close();
+
+		endforeach;
+
+
+		// rename folders
+		$folders = dirtoarray($installerDirectory);
+
+		// loop through
+		foreach ($folders as $folder) :
+
+			// rename folders
+			if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
+			if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
+			if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
 
 		endforeach;
 
@@ -238,7 +321,7 @@ switch(strtolower($argv[1])) :
 		$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
 
 		// add to directory
-		file_put_contents($directory . '.global.config', $globalConfig);
+		file_put_contents($directory . '/.global.config', $globalConfig);
 
 		// all good
 		screen_display('Your project has been created successfully.', 'success');
@@ -301,56 +384,107 @@ switch(strtolower($argv[1])) :
 
 			// files to extract
 			$filesToExtract = [
-				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip' => WORKING_DIRECTORY . '/' . $directory . '/core/',
-				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip' => WORKING_DIRECTORY . '/' . $directory . '/source/',
-				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip' => WORKING_DIRECTORY . '/' . $directory . '/packagers/',
+				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip'
+				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip'
+				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip'
 			];
-
-			// update user
-			screen_display('Updating framework library.');
-
-			// take a break
-			sleep(1);
 
 			// updated
 			$updated = 0;
 
-			// run update
-			foreach ($filesToExtract as $zipFile => $extractTo) :
+			// create tmp folder
+			$tmpFolder = __DIR__ . '/tmp/';
 
-				// load zip archive
-				$zipArchive = new ZipArchive();
+			// create folder if it doesn't exists
+			if (!is_dir($tmpFolder)) mkdir($tmpFolder);
 
-				// open file
-				if ($zipArchive->open($zipFile)) :
+			// has global file
+			$globalConfigFile = WORKING_DIRECTORY . '/' . $directory . '/.global.config';
 
-					// extract files
-					if ($zipArchive->extractTo($extractTo)) :
+			if (file_exists($globalConfigFile)) :
 
+				// run update
+				foreach ($filesToExtract as $zipFile => $extractTo) :
+
+					// load zip archive
+					$zipArchive = new ZipArchive();
+
+					// open file
+					if ($zipArchive->open($zipFile)) :
+
+						// extract files
+						if ($zipArchive->extractTo($tmpFolder)) :
+
+							$updated++;
+
+						endif;
+
+					endif;
+
+					// close zip handler
+					$zipArchive->close();
+
+				endforeach;
+
+				// set the working directory
+				chdir(WORKING_DIRECTORY . '/' . $directory);
+
+				// include file here
+				include_once $globalConfigFile;
+
+				// get MOOREXA_INSTALLER_DIR
+				if (defined('MOOREXA_INSTALLER_DIR')) :
+
+					// update user
+					screen_display('Updating framework library.');
+
+					// take a break
+					sleep(1);
+
+					// get all folders
+					$folders = dirtoarray($tmpFolder);
+
+					// copy all
+					foreach ($folders as $folder) :
+
+						if (strpos($folder, 'core')) :
+							// copy all out
+							rcopy($folder, MOOREXA_INSTALLER_DIR . '/core');
+						endif;
+
+						if (strpos($folder, 'source')) :
+							// copy all out
+							rcopy($folder, MOOREXA_INSTALLER_DIR . '/source');
+						endif;
+
+						if (strpos($folder, 'packagers')) :
+							// copy all out
+							rcopy($folder, MOOREXA_INSTALLER_DIR . '/packagers');
+						endif;
+
+						// delete folder
+						rrmdir($folder);
+
+						// good 
 						$updated++;
-						screen_display('Folder : ' . $extractTo . ' updated', 'success');
+
+					endforeach;
+
+					// are we good ?
+					if ($updated == count($filesToExtract)) :
+
+						screen_display('Update successful');
+
+						// update version on file
+						file_put_contents(MOOREXA_INSTALLER_DIR . '/version', $version);
+
+					else:
+
+						screen_display('Update was not successful', 'error');
 
 					endif;
 
 				endif;
-
-				// close zip handler
-				$zipArchive->close();
-
-			endforeach;
-
-
-			// are we good ?
-			if ($updated == count($filesToExtract)) :
-
-				screen_display('Update successful');
-
-				// update version on file
-				file_put_contents(WORKING_DIRECTORY . '/' . $directory . '/version', $version);
-
-			else:
-
-				screen_display('Update was not successful', 'error');
 
 			endif;
 
