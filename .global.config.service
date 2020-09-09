@@ -5,7 +5,7 @@ define('SYSTEM_TYPE', 'services');
 
 // Set the default folder for the framework. 
 // This would be useful when we need to update your version when there is a fix.
-define('MOOREXA_INSTALLER_DIR', 'framework/');
+define('MOOREXA_INSTALLER_DIR', '{directory}');
 
 // load core directory 
 $GLOBALCORE = MOOREXA_INSTALLER_DIR . 'core'; 

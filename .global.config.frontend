@@ -5,10 +5,10 @@ define('SYSTEM_TYPE', 'frontend');
 
 // Set the default folder for the framework. 
 // This would be useful when we need to update your version when there is a fix.
-define('MOOREXA_INSTALLER_DIR', 'framework/');
+define('MOOREXA_INSTALLER_DIR', '{directory}');
 
 // load core directory 
-$GLOBALCORE = MOOREXA_INSTALLER_DIR . 'core'; // please update
+$GLOBALCORE = MOOREXA_INSTALLER_DIR . 'core'; 
 
 // load packagers directory
 $PACKAGERS_DIRECTORY_ARRAY = [
@@ -17,7 +17,7 @@ $PACKAGERS_DIRECTORY_ARRAY = [
 ];
 
 // Source base directory
-$SOURCE_BASE_PATH = MOOREXA_INSTALLER_DIR . 'source'; // please update
+$SOURCE_BASE_PATH = MOOREXA_INSTALLER_DIR . 'source';
 
 // @Override for directories
 define('DIRECTORY_OVERRIDE', [
