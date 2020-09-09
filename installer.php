@@ -447,6 +447,7 @@ if ($completed == count($repos)) :
 
 	endforeach;
 
+
 	// delete this installer file
 	unlink(__DIR__ . '/installer.php');
 
