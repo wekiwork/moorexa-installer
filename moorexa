@@ -356,14 +356,40 @@ switch(strtolower($argv[1])) :
 		// @var string $version
 		$version = 'master';
 
+		// has global file
+		$globalConfigFile = WORKING_DIRECTORY . '/' . $directory . '/.global.config';
+
+
 		// get the installer_directory
-		$directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
+		$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
 
-		// do we have such directory ?
-		if (is_dir(WORKING_DIRECTORY . '/' . $directory)) :
 
-			// check for version file
-			if (file_exists(WORKING_DIRECTORY . '/' . $directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $directory . '/version'));
+		if (file_exists($globalConfigFile)) :
+
+			// include file here
+			include_once $globalConfigFile;
+
+			// set the working directory
+			chdir(WORKING_DIRECTORY . '/' . $directory);
+
+			// get current version
+			if (defined('MOOREXA_INSTALLER_DIR')) :
+
+				// check for version file
+				if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
+
+			endif;
+				
+
+		else:
+
+			// do we have such directory ?
+			if (is_dir(WORKING_DIRECTORY . '/' . $installer_directory)) :
+
+				// check for version file
+				if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
+
+			endif;
 
 		endif;
 
@@ -398,8 +424,6 @@ switch(strtolower($argv[1])) :
 			// create folder if it doesn't exists
 			if (!is_dir($tmpFolder)) mkdir($tmpFolder);
 
-			// has global file
-			$globalConfigFile = WORKING_DIRECTORY . '/' . $directory . '/.global.config';
 
 			if (file_exists($globalConfigFile)) :
 
@@ -429,8 +453,6 @@ switch(strtolower($argv[1])) :
 				// set the working directory
 				chdir(WORKING_DIRECTORY . '/' . $directory);
 
-				// include file here
-				include_once $globalConfigFile;
 
 				// get MOOREXA_INSTALLER_DIR
 				if (defined('MOOREXA_INSTALLER_DIR')) :
