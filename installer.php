@@ -447,6 +447,9 @@ if ($completed == count($repos)) :
 
 	endif;
 
+	// delete this installer file
+	unlink(__DIR__ . '/installer.php');
+
 
 	// fresh installation
 	if (!$updateInstaller) :
@@ -460,9 +463,6 @@ if ($completed == count($repos)) :
 	// add path file
 	file_put_contents($pathFile, $profile);
 
-	// delete this installer file
-	unlink(__DIR__ . '/installer.php');
-
 	// all done!
 	screen_display('All done. You can enter "moorexa" on your terminal or cmd to see a list of options avaliable to you. Thank you for installing moorexa.
 
@@ -475,7 +475,9 @@ Or just go on with closing and reopening your terminal before trying \"moorexa\"
 
 	else:
 
+
 		// update ran
+		screen_display('All done. update was successfull', 'success');
 
 	endif;
 
