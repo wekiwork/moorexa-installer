@@ -99,7 +99,7 @@ if (!is_dir($homeDirectory . '/moorexa')) mkdir($homeDirectory . '/moorexa');
 $moorexaFile = $homeDirectory . '/moorexa/moorexa';
 
 // put content inside a new file
-file_put_contents($moorexaFile, file_get_contents('https://svn.wekiwork.com/moorexa'));
+file_put_contents($moorexaFile, file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/'.$version.'/moorexa'));
 
 // create path
 screen_display('Checking if PATH has been registered.', 'success');
