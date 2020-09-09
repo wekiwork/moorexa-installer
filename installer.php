@@ -475,7 +475,6 @@ Or just go on with closing and reopening your terminal before trying \"moorexa\"
 
 	else:
 
-
 		// update ran
 		screen_display('All done. update was successfull', 'success');
 
