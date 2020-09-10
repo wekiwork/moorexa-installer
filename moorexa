@@ -38,7 +38,7 @@ foreach ($argv as $index => $command) :
 					$newDir = $createdDir . $dir . '/';
 
 					// create new dir
-					mkdir($newDir);
+					if(!is_dir($newDir)) mkdir($newDir);
 
 					// add to created dir
 					$createdDir .= $dir . '/';
