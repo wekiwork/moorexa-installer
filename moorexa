@@ -13,7 +13,7 @@ $directoryFlagUsed = false;
 foreach ($argv as $index => $command) :
 
 	// look for dir
-	if (strpos($command, '--dir=') !== false) :
+	if (strpos($command, '--dir=') !== false || strpos($command, '-dir=') !== false) :
 
 		// get the version
 		$command = explode('=', $command);
@@ -225,7 +225,7 @@ Try any of this commands:\n
 (6.) moorexa prepare
 
 Additional flag 
-(1.) --dir=<directory name>
+(1.) --dir=<directory name> or -dir=<directory name>
 
 For more information, please visit www.moorexa.com/doc/installer";
 
