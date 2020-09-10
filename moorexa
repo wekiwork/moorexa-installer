@@ -207,13 +207,6 @@ if (file_exists($initFile) && $updateInstaller === false) :
 	
 endif;
 
-// get the home directory
-$home = $_SERVER['HOME'];
-
-var_dump(file_exists($home . '/.bashrc'));
-
-die;
-
 // command string 
 $commands = "
 Try any of this commands:\n
