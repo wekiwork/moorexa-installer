@@ -1,10 +1,69 @@
 <?php
 
-// get the working directory
-define('WORKING_DIRECTORY', $_SERVER['PWD'] . '/');
-
 // get the arguments
 $argv = $_SERVER['argv'];
+
+// save to directory
+$saveToDirectory = $_SERVER['PWD'] . '/';
+
+// directory flag used
+$directoryFlagUsed = false;
+
+// check for update flag
+foreach ($argv as $index => $command) :
+
+	// look for dir
+	if (strpos($command, '--dir=') !== false) :
+
+		// get the version
+		$command = explode('=', $command);
+
+		// pass the version
+		$saveToDirectory = end($command) . '/';
+
+		// make directory if it doesn't exists
+		if (!is_dir($saveToDirectory)) :
+
+			// split string
+			$directoryArray = explode('/', $saveToDirectory);
+
+			// created dir
+			$createdDir = '';
+
+			// create directories
+			foreach ($directoryArray as $dir) :
+
+				if (is_dir($dir)) $createdDir .= $dir . '/';
+				if (!is_dir($dir)) :
+					$newDir = $createdDir . $dir . '/';
+
+					// create new dir
+					mkdir($newDir);
+
+					// add to created dir
+					$createdDir .= $dir . '/';
+					
+				endif;
+
+			endforeach;
+
+		endif;
+
+		// remove index
+		unset($argv[$index]);
+
+		// update 
+		$directoryFlagUsed = true;
+
+		// sort
+		sort($argv);
+
+	endif;
+
+endforeach;
+
+// get the working directory
+define('WORKING_DIRECTORY', $saveToDirectory);
 
 // check for init within current directory
 $initFile = WORKING_DIRECTORY . 'init.php';
@@ -323,7 +382,7 @@ switch(strtolower($argv[1])) :
 		file_put_contents($directory . '/.global.config', $globalConfig);
 
 		// all good
-		screen_display('Your project has been created successfully.', 'success');
+		screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
 
 		// change directory
 		$changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';

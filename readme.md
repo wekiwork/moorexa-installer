@@ -16,7 +16,7 @@ php ---version
 3. You should at least have php 7.2 installed.
 4. Copy the code below to start installation;
 ```bash
-php -r "copy('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php', 'installer.php');"; php installer.php;
+php -r "copy('https://installer.wekiwork.com/script', 'installer.php');"; php installer.php;
 ```
 	You can replace 'master' with a version number if you want to.
 
