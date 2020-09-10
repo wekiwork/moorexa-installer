@@ -357,14 +357,11 @@ switch(strtolower($argv[1])) :
 		$version = 'master';
 
 		// has global file
-		$globalConfigFile = WORKING_DIRECTORY . '/.global.config';
+		$globalConfigFile = WORKING_DIRECTORY . '/' . $directory . '/.global.config';
 
 
 		// get the installer_directory
 		$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
-
-		// can continue
-		$canContinue = false;
 
 
 		if (file_exists($globalConfigFile)) :
@@ -373,15 +370,13 @@ switch(strtolower($argv[1])) :
 			include_once $globalConfigFile;
 
 			// set the working directory
-			chdir(WORKING_DIRECTORY);
+			chdir(WORKING_DIRECTORY . '/' . $directory);
 
 			// get current version
 			if (defined('MOOREXA_INSTALLER_DIR')) :
 
 				// check for version file
 				if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
-
-				$canContinue = true;
 
 			endif;
 				
@@ -393,8 +388,6 @@ switch(strtolower($argv[1])) :
 
 				// check for version file
 				if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
-
-				$canContinue = true;
 
 			endif;
 
@@ -410,7 +403,7 @@ switch(strtolower($argv[1])) :
 		pclose(popen($command, "w"));
 
 		// update framework directory
-		if ($canContinue) :
+		if (is_dir(WORKING_DIRECTORY . '/' . $directory)) :
 
 			// clean version
 			$versionName = preg_replace('/[s]+/', '', $version);
@@ -435,7 +428,7 @@ switch(strtolower($argv[1])) :
 			if (file_exists($globalConfigFile)) :
 
 				// run update
-				foreach ($filesToExtract as $zipFile => $extractTo) :
+				foreach ($filesToExtract as $zipFile) :
 
 					// load zip archive
 					$zipArchive = new ZipArchive();
@@ -458,7 +451,7 @@ switch(strtolower($argv[1])) :
 				endforeach;
 
 				// set the working directory
-				chdir(WORKING_DIRECTORY);
+				chdir(WORKING_DIRECTORY . '/' . $directory);
 
 
 				// get MOOREXA_INSTALLER_DIR
