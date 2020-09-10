@@ -15,11 +15,10 @@ php ---version
 ```
 3. You should at least have php 7.2 installed.
 4. Copy the code below to start installation;
+
 ```bash
 php -r "copy('https://installer.wekiwork.com/script', 'installer.php');"; php installer.php;
 ```
-	You can replace 'master' with a version number if you want to.
-
 5. Paste command copied into your terminal and hit the ENTER key to start operation.
 6. Wait for the process to finish
 7. Enjoy building with PHP on Moorexa..
