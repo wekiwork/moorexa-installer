@@ -470,7 +470,7 @@ if ($completed == count($repos)) :
 You may have to restart your terminal or try any of this commands to update your system paths.' . "\n" .
 "
 [Mac] > source ~/.bash_profile
-[Ubuntu] > source ~/.bashrc
+[Ubuntu or Linux] > source ~/.bashrc
 
 Or just go on with closing and reopening your terminal before trying \"moorexa\" command.\n\n");
 
@@ -482,7 +482,7 @@ Or just go on with closing and reopening your terminal before trying \"moorexa\"
 	endif;
 
 	// send a signal. Download was successfull
-	$ch = curl_init('http://installer.wekiwork.com');
+	$ch = curl_init('http://moorexa.com/installation-complete');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Moorexa Installer#successfull');
