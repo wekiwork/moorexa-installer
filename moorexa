@@ -22,7 +22,10 @@ foreach ($argv as $index => $command) :
 		$command = explode('=', $command);
 
 		// pass the version
-		$saveToDirectory = end($command) . '/';
+		$saveToDirectory = end($command);
+
+		// remove slashes
+		$saveToDirectory = ltrim(rtrim($saveToDirectory, '/'), '/');
 
 		// make directory if it doesn't exists
 		if (!is_dir($saveToDirectory)) :
@@ -31,7 +34,7 @@ foreach ($argv as $index => $command) :
 			$directoryArray = explode('/', ltrim($saveToDirectory, '/'));
 
 			// created dir
-			$createdDir = '/';
+			$createdDir = '';
 
 			// create directories
 			foreach ($directoryArray as $dir) :
@@ -357,6 +360,9 @@ if (is_dir(WORKING_DIRECTORY)) :
 				__DIR__ . '/storage/' . $version . '-moorexaSource.zip', 
 				__DIR__ . '/storage/' . $version . '-moorexaPackager.zip', 
 			];
+
+			// installer directory
+			$moorexaInstallerDirectory = __DIR__;
 			
 
 			chdir($directory);
@@ -400,13 +406,13 @@ if (is_dir(WORKING_DIRECTORY)) :
 			file_put_contents($installerDirectory . '/version', $version);
 
 			// add global config to working directory
-			$globalConfig = file_get_contents(__DIR__ . '/.global.config.' . $createType . '.txt');
+			$globalConfig = file_get_contents($moorexaInstallerDirectory . '/.global.config.' . $createType . '.txt');
 
 			// update {directory}
 			$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
 
 			// add to directory
-			file_put_contents($directory . '/.global.config', $globalConfig);
+			file_put_contents('.global.config', $globalConfig);
 
 			// all good
 			screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
@@ -443,7 +449,6 @@ if (is_dir(WORKING_DIRECTORY)) :
 
 			// has global file
 			$globalConfigFile = WORKING_DIRECTORY . '/.global.config';
-
 
 			// get the installer_directory
 			$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
