@@ -366,7 +366,24 @@ switch(strtolower($argv[1])) :
 		// can continue
 		$canContinue = false;
 
+		// clean version
+		$versionName = preg_replace('/[s]+/', '', $version);
 
+		// files to extract
+		$filesToExtract = [
+			__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
+			__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
+			__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
+		];
+
+		// create tmp folder
+		$tmpFolder = __DIR__ . '/tmp/';
+
+		// create folder if it doesn't exists
+		if (!is_dir($tmpFolder)) mkdir($tmpFolder);
+
+
+		// load config
 		if (file_exists($globalConfigFile)) :
 
 			// include file here
@@ -412,24 +429,8 @@ switch(strtolower($argv[1])) :
 		// update framework directory
 		if ($canContinue) :
 
-			// clean version
-			$versionName = preg_replace('/[s]+/', '', $version);
-
-			// files to extract
-			$filesToExtract = [
-				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
-				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
-				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
-			];
-
 			// updated
 			$updated = 0;
-
-			// create tmp folder
-			$tmpFolder = __DIR__ . '/tmp/';
-
-			// create folder if it doesn't exists
-			if (!is_dir($tmpFolder)) mkdir($tmpFolder);
 
 
 			if (file_exists($globalConfigFile)) :
