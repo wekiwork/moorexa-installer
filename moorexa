@@ -36,8 +36,15 @@ foreach ($argv as $index => $command) :
 				// append directory
 				$createdDir .= $dir . '/';
 
-				// create directory
-				if (!is_dir($createdDir)) mkdir($createdDir);
+				try
+				{
+					// create directory
+					if (!is_dir($createdDir)) mkdir($createdDir);
+				}
+				catch(Throwable $e)
+				{
+
+				}
 
 			endforeach;
 
@@ -229,6 +236,9 @@ if (count($argv) == 1 || (isset($argv[1]) && strlen(trim($argv[1])) == 0)) retur
 Not within a working moorexa directory\n
 {$commands}
 ");
+
+// try creating directory
+if (!is_dir(WORKING_DIRECTORY)) pclose(popen("mkdir -p " . WORKING_DIRECTORY . ' > /dev/null &', "w"));
 
 // check for directory
 if (is_dir(WORKING_DIRECTORY)) :
