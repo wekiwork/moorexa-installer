@@ -42,7 +42,7 @@ foreach ($argv as $index => $command) :
 
 					// add to created dir
 					$createdDir .= $dir . '/';
-					
+
 				endif;
 
 			endforeach;
@@ -223,6 +223,9 @@ Try any of this commands:\n
 (5.1) moorexa create <project-name> -frontend --version=v1.0
 (5.2) moorexa create <project-name> -frontend --modular
 (6.) moorexa prepare
+
+Additional flag 
+(1.) --dir=<directory name>
 
 For more information, please visit www.moorexa.com/doc/installer";
 
