@@ -17,7 +17,7 @@ php ---version
 4. Copy the code below to start installation;
 
 ```bash
-php -r "copy('https://installer.wekiwork.com/script', 'installer.php');"; php installer.php;
+php -r "copy('http://bit.ly/moorexa-installer', 'installer.php');"; php installer.php;
 ```
 5. Paste command copied into your terminal and hit the ENTER key to start operation.
 6. Wait for the process to finish
