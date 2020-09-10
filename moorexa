@@ -1,5 +1,8 @@
 <?php
 
+// turn off error reporting
+error_reporting(0);
+
 // get the arguments
 $argv = $_SERVER['argv'];
 
@@ -160,8 +163,22 @@ $modular = false;
 // check for update flag
 foreach ($argv as $index => $command) :
 
-	// look for --update flag
+	// look for update flag
 	if (strtolower($command) == 'update') $updateInstaller = true;
+
+	// look for debug mode
+	if (strpos($command, '--debug') !== false || strpos($command, '-debug') !== false) :
+
+		// show errors
+		error_reporting(E_ALL);
+
+		// remove index
+		unset($argv[$index]);
+
+		// sort
+		sort($argv);
+
+	endif;
 
 	// look for version
 	if (strpos($command, '--version=') !== false) :
@@ -227,6 +244,7 @@ Try any of this commands:\n
 
 Additional flag 
 (1.) --dir=<directory name> or -dir=<directory name>
+(2.) --debug or -debug
 
 For more information, please visit www.moorexa.com/doc/installer";
 
