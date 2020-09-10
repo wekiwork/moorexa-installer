@@ -366,22 +366,8 @@ switch(strtolower($argv[1])) :
 		// can continue
 		$canContinue = false;
 
-		// clean version
-		$versionName = preg_replace('/[s]+/', '', $version);
-
-		// files to extract
-		$filesToExtract = [
-			__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
-			__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
-			__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
-		];
-
-		// create tmp folder
-		$tmpFolder = __DIR__ . '/tmp/';
-
-		// create folder if it doesn't exists
-		if (!is_dir($tmpFolder)) mkdir($tmpFolder);
-
+		// curren dir
+		$currentDirectory = __DIR__;
 
 		// load config
 		if (file_exists($globalConfigFile)) :
@@ -420,11 +406,29 @@ switch(strtolower($argv[1])) :
 		// get the version
 		$version = $input == '' ? $version : $input;
 
+		chdir($currentDirectory);
+
 		// command 
 		$command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
 
 		// run command
 		pclose(popen($command, "w"));
+
+		// clean version
+		$versionName = preg_replace('/[s]+/', '', $version);
+
+		// files to extract
+		$filesToExtract = [
+			__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
+			__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
+			__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
+		];
+
+		// create tmp folder
+		$tmpFolder = __DIR__ . '/tmp/';
+
+		// create folder if it doesn't exists
+		if (!is_dir($tmpFolder)) mkdir($tmpFolder);
 
 		// update framework directory
 		if ($canContinue) :
