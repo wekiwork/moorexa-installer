@@ -415,7 +415,7 @@ switch(strtolower($argv[1])) :
 		pclose(popen($command, "w"));
 
 		// clean version
-		$versionName = preg_replace('/[s]+/', '', $version);
+		$versionName = preg_replace('/[\s]+/', '', $version);
 
 		// files to extract
 		$filesToExtract = [
@@ -439,11 +439,11 @@ switch(strtolower($argv[1])) :
 
 			if (file_exists($globalConfigFile)) :
 
+				// load zip archive
+				$zipArchive = new ZipArchive();
+
 				// run update
 				foreach ($filesToExtract as $zipFile) :
-
-					// load zip archive
-					$zipArchive = new ZipArchive();
 
 					// open file
 					if ($zipArchive->open($zipFile)) :
@@ -457,10 +457,10 @@ switch(strtolower($argv[1])) :
 
 					endif;
 
-					// close zip handler
-					$zipArchive->close();
-
 				endforeach;
+
+				// close zip handler
+				$zipArchive->close();
 
 				// set the working directory
 				chdir(WORKING_DIRECTORY);
