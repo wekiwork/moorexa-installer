@@ -207,6 +207,13 @@ if (file_exists($initFile) && $updateInstaller === false) :
 	
 endif;
 
+// get the home directory
+$home = $_SERVER['HOME'];
+
+var_dump(file_exists($home . '/.bashrc'));
+
+die;
+
 // command string 
 $commands = "
 Try any of this commands:\n
@@ -235,6 +242,7 @@ if (count($argv) == 1 || (isset($argv[1]) && strlen(trim($argv[1])) == 0)) retur
 Not within a working moorexa directory\n
 {$commands}
 ");
+
 
 
 // manage request

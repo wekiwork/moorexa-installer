@@ -157,7 +157,7 @@ else:
 	if (file_exists($homeDirectory . '/.bash_profile')) $profileName = '.bash_profile';
 
 	// get the profile name
-	$profile = 'sudo echo "alias moorexa=\"php '.$homeDirectory.'/moorexa/moorexa"\" >> ~/' . $profileName . ';source ~/' . $profileName;
+	$profile = 'echo "alias moorexa=\"php '.$homeDirectory.'/moorexa/moorexa"\" >> ~/' . $profileName . ';source ~/' . $profileName;
 
 endif;
 
