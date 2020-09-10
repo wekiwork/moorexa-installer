@@ -25,25 +25,19 @@ foreach ($argv as $index => $command) :
 		if (!is_dir($saveToDirectory)) :
 
 			// split string
-			$directoryArray = explode('/', $saveToDirectory);
+			$directoryArray = explode('/', ltrim($saveToDirectory, '/'));
 
 			// created dir
-			$createdDir = '';
+			$createdDir = '/';
 
 			// create directories
 			foreach ($directoryArray as $dir) :
 
-				if (is_dir($dir)) $createdDir .= $dir . '/';
-				if (!is_dir($dir)) :
-					$newDir = $createdDir . $dir . '/';
+				// append directory
+				$createdDir .= $dir . '/';
 
-					// create new dir
-					if(!is_dir($newDir)) mkdir($newDir);
-
-					// add to created dir
-					$createdDir .= $dir . '/';
-
-				endif;
+				// create directory
+				if (!is_dir($createdDir)) mkdir($createdDir);
 
 			endforeach;
 
