@@ -230,363 +230,370 @@ Not within a working moorexa directory\n
 {$commands}
 ");
 
+// check for directory
+if (is_dir(WORKING_DIRECTORY)) :
 
+	// manage request
+	switch(strtolower($argv[1])) :
 
-// manage request
-switch(strtolower($argv[1])) :
+		// create command
+		case 'create':
 
-	// create command
-	case 'create':
+			// get the folder name
+			$folderName = isset($argv[2]) ? $argv[2] : '';
 
-		// get the folder name
-		$folderName = isset($argv[2]) ? $argv[2] : '';
+			// check for '-'
+			if (strpos($folderName, '-') !== false) :
 
-		// check for '-'
-		if (strpos($folderName, '-') !== false) :
+				// push to next argv
+				$argv[3] = $folderName;
 
-			// push to next argv
-			$argv[3] = $folderName;
-
-			// replace name
-			$folderName = '';
-
-		endif;
-
-		// get directory
-		$directory = rtrim(WORKING_DIRECTORY . $folderName, '/') . '/';
-
-		// stop if directory exists
-		if ($folderName != '' && is_dir($directory)) return screen_display('Workspace exists. Failed to overwrite', 'error');
-
-		// create folder if it doesn't exists
-		if (!is_dir($directory)) mkdir($directory);
-
-		// get the create type
-		$createType = isset($argv[3]) ? strtolower($argv[3]) : 'frontend';
-
-		// remove dash
-		$createType = ltrim($createType, '-');
-
-		// open storage
-		$storage = __DIR__ . '/storage/' . ($createType == 'service' ? $version . '-moorexaMicroService' : $version . '-moorexaFrontEnd') . '.zip';
-
-		// does file exists
-		if (!file_exists($storage)) return implode("\n", [
-			screen_display('Invalid create type "'.$createType.'"', 'error'),
-			screen_display($commands)
-		]);
-
-		// file exists
-		// open zip manager
-		screen_display('Creating a blank project for "'.$createType.'"', 'success');
-
-		// get size
-		$fileSize = filesize($storage);
-
-		// print size to screen
-		screen_display('Pouring size ' . round($fileSize / 1024) . 'kb into '.$directory.'');
-
-		// load zip archive
-		$zipArchive = new ZipArchive();
-
-		// open file
-		if (!$zipArchive->open($storage)) return screen_display('Could not start extracting. It\'s possible that the .zip file has been corrupted or we dont have full permission to continue. Please run moorexa update or contact support.', 'error');
-
-		// starting extraction
-		screen_display('Starting extraction from cache', 'success');
-
-		// sleep
-		sleep(2);
-
-		// make a tmp direcory
-		if (!is_dir(__DIR__ . '/tmp/')) mkdir(__DIR__ . '/tmp/');
-
-		// start now
-		if ($zipArchive->extractTo(__DIR__ . '/tmp/')) $zipArchive->close();
-
-		// get the folder extracted
-		$folderExtracted = dirtoarray(__DIR__ . '/tmp/')[0];
-
-		// copy files
-		rcopy($folderExtracted, $directory);
-
-		// delete tmp
-		rrmdir($folderExtracted);
-
-		// get the installer directory
-		$installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
-
-		// is modular ?
-		if ($modular && $folderName != '') :
-			// go back one step
-			$installerDirectory = '../' . $installerDirectory;
-		endif;
-
-		// folders we would be creating in the installer directory
-		$installerFolders = [
-			__DIR__ . '/storage/' . $version . '-moorexaCore.zip', 
-			__DIR__ . '/storage/' . $version . '-moorexaSource.zip', 
-			__DIR__ . '/storage/' . $version . '-moorexaPackager.zip', 
-		];
-		
-
-		chdir($directory);
-
-		// create installer directory and also add core, source, and packager
-		if (!is_dir($installerDirectory)) mkdir($installerDirectory);
-
-		// create folders
-		foreach ($installerFolders as $zipFile) :
-
-			// extract zip file into folder
-			$zip = new ZipArchive();
-
-			if ($zip->open($zipFile)) :
-
-				// extract now
-				$zip->extractTo($installerDirectory);
+				// replace name
+				$folderName = '';
 
 			endif;
 
-			// close file
-			$zip->close();
+			// get directory
+			$directory = rtrim(WORKING_DIRECTORY . $folderName, '/') . '/';
 
-		endforeach;
+			// stop if directory exists
+			if ($folderName != '' && is_dir($directory)) return screen_display('Workspace exists. Failed to overwrite', 'error');
 
+			// create folder if it doesn't exists
+			if (!is_dir($directory)) mkdir($directory);
 
-		// rename folders
-		$folders = dirtoarray($installerDirectory);
+			// get the create type
+			$createType = isset($argv[3]) ? strtolower($argv[3]) : 'frontend';
 
-		// loop through
-		foreach ($folders as $folder) :
+			// remove dash
+			$createType = ltrim($createType, '-');
+
+			// open storage
+			$storage = __DIR__ . '/storage/' . ($createType == 'service' ? $version . '-moorexaMicroService' : $version . '-moorexaFrontEnd') . '.zip';
+
+			// does file exists
+			if (!file_exists($storage)) return implode("\n", [
+				screen_display('Invalid create type "'.$createType.'"', 'error'),
+				screen_display($commands)
+			]);
+
+			// file exists
+			// open zip manager
+			screen_display('Creating a blank project for "'.$createType.'"', 'success');
+
+			// get size
+			$fileSize = filesize($storage);
+
+			// print size to screen
+			screen_display('Pouring size ' . round($fileSize / 1024) . 'kb into '.$directory.'');
+
+			// load zip archive
+			$zipArchive = new ZipArchive();
+
+			// open file
+			if (!$zipArchive->open($storage)) return screen_display('Could not start extracting. It\'s possible that the .zip file has been corrupted or we dont have full permission to continue. Please run moorexa update or contact support.', 'error');
+
+			// starting extraction
+			screen_display('Starting extraction from cache', 'success');
+
+			// sleep
+			sleep(2);
+
+			// make a tmp direcory
+			if (!is_dir(__DIR__ . '/tmp/')) mkdir(__DIR__ . '/tmp/');
+
+			// start now
+			if ($zipArchive->extractTo(__DIR__ . '/tmp/')) $zipArchive->close();
+
+			// get the folder extracted
+			$folderExtracted = dirtoarray(__DIR__ . '/tmp/')[0];
+
+			// copy files
+			rcopy($folderExtracted, $directory);
+
+			// delete tmp
+			rrmdir($folderExtracted);
+
+			// get the installer directory
+			$installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
+
+			// is modular ?
+			if ($modular && $folderName != '') :
+				// go back one step
+				$installerDirectory = '../' . $installerDirectory;
+			endif;
+
+			// folders we would be creating in the installer directory
+			$installerFolders = [
+				__DIR__ . '/storage/' . $version . '-moorexaCore.zip', 
+				__DIR__ . '/storage/' . $version . '-moorexaSource.zip', 
+				__DIR__ . '/storage/' . $version . '-moorexaPackager.zip', 
+			];
+			
+
+			chdir($directory);
+
+			// create installer directory and also add core, source, and packager
+			if (!is_dir($installerDirectory)) mkdir($installerDirectory);
+
+			// create folders
+			foreach ($installerFolders as $zipFile) :
+
+				// extract zip file into folder
+				$zip = new ZipArchive();
+
+				if ($zip->open($zipFile)) :
+
+					// extract now
+					$zip->extractTo($installerDirectory);
+
+				endif;
+
+				// close file
+				$zip->close();
+
+			endforeach;
+
 
 			// rename folders
-			if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
-			if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
-			if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
+			$folders = dirtoarray($installerDirectory);
 
-		endforeach;
+			// loop through
+			foreach ($folders as $folder) :
 
-		// add the version
-		file_put_contents($installerDirectory . '/version', $version);
+				// rename folders
+				if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
+				if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
+				if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
 
-		// add global config to working directory
-		$globalConfig = file_get_contents(__DIR__ . '/.global.config.' . $createType . '.txt');
+			endforeach;
 
-		// update {directory}
-		$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
+			// add the version
+			file_put_contents($installerDirectory . '/version', $version);
 
-		// add to directory
-		file_put_contents($directory . '/.global.config', $globalConfig);
+			// add global config to working directory
+			$globalConfig = file_get_contents(__DIR__ . '/.global.config.' . $createType . '.txt');
 
-		// all good
-		screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
+			// update {directory}
+			$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
 
-		// change directory
-		$changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';
+			// add to directory
+			file_put_contents($directory . '/.global.config', $globalConfig);
 
-		// final note
-		screen_display("\n".'So what next?'."\n". $changeDirectory .' "moorexa install" to load required dependencies, or "moorexa serve" to start development server if dependencies already exists.'."\n\n".'Thank you for building with Moorexa..');
+			// all good
+			screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
 
-	break;
+			// change directory
+			$changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';
 
-	// prepare
-	case 'prepare':
+			// final note
+			screen_display("\n".'So what next?'."\n". $changeDirectory .' "moorexa install" to load required dependencies, or "moorexa serve" to start development server if dependencies already exists.'."\n\n".'Thank you for building with Moorexa..');
 
-		// check for folder installation
-		if (!is_dir(__DIR__ . '/storage')) mkdir(__DIR__ . '/storage');
-		
-		// try to download from svn.
+		break;
 
-	break;
+		// prepare
+		case 'prepare':
 
-	// update 
-	case 'update':
+			// check for folder installation
+			if (!is_dir(__DIR__ . '/storage')) mkdir(__DIR__ . '/storage');
+			
+			// try to download from svn.
 
-		// ask user 
-		fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we update? (Hit Enter to update your current version) : ');
+		break;
 
-		// read input
-		$input = readInput();
+		// update 
+		case 'update':
 
-		// @var string $version
-		$version = 'master';
+			// ask user 
+			fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we update? (Hit Enter to update your current version) : ');
 
-		// has global file
-		$globalConfigFile = WORKING_DIRECTORY . '/.global.config';
+			// read input
+			$input = readInput();
 
+			// @var string $version
+			$version = 'master';
 
-		// get the installer_directory
-		$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
-
-		// can continue
-		$canContinue = false;
-
-		// curren dir
-		$currentDirectory = __DIR__;
-
-		// load config
-		if (file_exists($globalConfigFile)) :
-
-			// include file here
-			include_once $globalConfigFile;
-
-			// set the working directory
-			chdir(WORKING_DIRECTORY);
-
-			// get current version
-			if (defined('MOOREXA_INSTALLER_DIR')) :
-
-				// check for version file
-				if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
-
-				$canContinue = true;
-
-			endif;
-				
-
-		else:
-
-			// do we have such directory ?
-			if (is_dir(WORKING_DIRECTORY . '/' . $installer_directory)) :
-
-				// check for version file
-				if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
-
-				$canContinue = true;
-
-			endif;
-
-		endif;
-
-		// get the version
-		$version = $input == '' ? $version : $input;
-
-		chdir($currentDirectory);
-
-		// command 
-		$command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
-
-		// run command
-		pclose(popen($command, "w"));
-
-		// clean version
-		$versionName = preg_replace('/[\s]+/', '', $version);
-
-		// files to extract
-		$filesToExtract = [
-			__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
-			__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
-			__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
-		];
-
-		// create tmp folder
-		$tmpFolder = __DIR__ . '/tmp/';
-
-		// create folder if it doesn't exists
-		if (!is_dir($tmpFolder)) mkdir($tmpFolder);
-
-		// update framework directory
-		if ($canContinue) :
-
-			// updated
-			$updated = 0;
+			// has global file
+			$globalConfigFile = WORKING_DIRECTORY . '/.global.config';
 
 
+			// get the installer_directory
+			$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
+
+			// can continue
+			$canContinue = false;
+
+			// curren dir
+			$currentDirectory = __DIR__;
+
+			// load config
 			if (file_exists($globalConfigFile)) :
 
-				// load zip archive
-				$zipArchive = new ZipArchive();
-
-				// run update
-				foreach ($filesToExtract as $zipFile) :
-
-					// open file
-					if ($zipArchive->open($zipFile)) :
-
-						// extract files
-						if ($zipArchive->extractTo($tmpFolder)) :
-
-							$updated++;
-
-						endif;
-
-					endif;
-
-				endforeach;
-
-				// close zip handler
-				$zipArchive->close();
+				// include file here
+				include_once $globalConfigFile;
 
 				// set the working directory
 				chdir(WORKING_DIRECTORY);
 
-
-				// get MOOREXA_INSTALLER_DIR
+				// get current version
 				if (defined('MOOREXA_INSTALLER_DIR')) :
 
-					// update user
-					screen_display('Updating framework library.');
+					// check for version file
+					if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
 
-					// take a break
-					sleep(1);
+					$canContinue = true;
 
-					// get all folders
-					$folders = dirtoarray($tmpFolder);
+				endif;
+					
 
-					// copy all
-					foreach ($folders as $folder) :
+			else:
 
-						if (strpos($folder, 'core')) :
-							// copy all out
-							rcopy($folder, MOOREXA_INSTALLER_DIR . '/core');
-						endif;
+				// do we have such directory ?
+				if (is_dir(WORKING_DIRECTORY . '/' . $installer_directory)) :
 
-						if (strpos($folder, 'source')) :
-							// copy all out
-							rcopy($folder, MOOREXA_INSTALLER_DIR . '/source');
-						endif;
+					// check for version file
+					if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
 
-						if (strpos($folder, 'packagers')) :
-							// copy all out
-							rcopy($folder, MOOREXA_INSTALLER_DIR . '/packagers');
-						endif;
-
-						// delete folder
-						rrmdir($folder);
-
-					endforeach;
-
-					// are we good ?
-					if ($updated == count($filesToExtract)) :
-
-						screen_display('Update successful');
-
-						// update version on file
-						file_put_contents(MOOREXA_INSTALLER_DIR . '/version', $version);
-
-					else:
-
-						screen_display('Update was not successful', 'error');
-
-					endif;
+					$canContinue = true;
 
 				endif;
 
 			endif;
 
-		else:
+			// get the version
+			$version = $input == '' ? $version : $input;
 
-			// all good
-			screen_display(($version == 'master' ? 'Master branch was updated successfully' : 'Your version ' . $version . ' was updated successfully'));
+			chdir($currentDirectory);
 
-		endif;
+			// command 
+			$command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
 
-	break;
+			// run command
+			pclose(popen($command, "w"));
 
-	// invalid command 
-	default:
-		screen_display('Invalid command "'.$argv[1].'"', 'error');
-		screen_display($commands);
-endswitch;
+			// clean version
+			$versionName = preg_replace('/[\s]+/', '', $version);
 
+			// files to extract
+			$filesToExtract = [
+				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
+				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
+				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
+			];
+
+			// create tmp folder
+			$tmpFolder = __DIR__ . '/tmp/';
+
+			// create folder if it doesn't exists
+			if (!is_dir($tmpFolder)) mkdir($tmpFolder);
+
+			// update framework directory
+			if ($canContinue) :
+
+				// updated
+				$updated = 0;
+
+
+				if (file_exists($globalConfigFile)) :
+
+					// load zip archive
+					$zipArchive = new ZipArchive();
+
+					// run update
+					foreach ($filesToExtract as $zipFile) :
+
+						// open file
+						if ($zipArchive->open($zipFile)) :
+
+							// extract files
+							if ($zipArchive->extractTo($tmpFolder)) :
+
+								$updated++;
+
+							endif;
+
+						endif;
+
+					endforeach;
+
+					// close zip handler
+					$zipArchive->close();
+
+					// set the working directory
+					chdir(WORKING_DIRECTORY);
+
+
+					// get MOOREXA_INSTALLER_DIR
+					if (defined('MOOREXA_INSTALLER_DIR')) :
+
+						// update user
+						screen_display('Updating framework library.');
+
+						// take a break
+						sleep(1);
+
+						// get all folders
+						$folders = dirtoarray($tmpFolder);
+
+						// copy all
+						foreach ($folders as $folder) :
+
+							if (strpos($folder, 'core')) :
+								// copy all out
+								rcopy($folder, MOOREXA_INSTALLER_DIR . '/core');
+							endif;
+
+							if (strpos($folder, 'source')) :
+								// copy all out
+								rcopy($folder, MOOREXA_INSTALLER_DIR . '/source');
+							endif;
+
+							if (strpos($folder, 'packagers')) :
+								// copy all out
+								rcopy($folder, MOOREXA_INSTALLER_DIR . '/packagers');
+							endif;
+
+							// delete folder
+							rrmdir($folder);
+
+						endforeach;
+
+						// are we good ?
+						if ($updated == count($filesToExtract)) :
+
+							screen_display('Update successful');
+
+							// update version on file
+							file_put_contents(MOOREXA_INSTALLER_DIR . '/version', $version);
+
+						else:
+
+							screen_display('Update was not successful', 'error');
+
+						endif;
+
+					endif;
+
+				endif;
+
+			else:
+
+				// all good
+				screen_display(($version == 'master' ? 'Master branch was updated successfully' : 'Your version ' . $version . ' was updated successfully'));
+
+			endif;
+
+		break;
+
+		// invalid command 
+		default:
+			screen_display('Invalid command "'.$argv[1].'"', 'error');
+			screen_display($commands);
+	endswitch;
+
+else:
+
+	// working directory doesn't exists
+	screen_display('Could not continue, working directory "'.WORKING_DIRECTORY.'" does not exists.', 'error');
+
+endif;
