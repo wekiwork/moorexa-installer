@@ -50,5 +50,17 @@ define('DIRECTORY_OVERRIDE', [
     'PATH_TO_STORAGE' => [
         // check here first
         'PATH_TO_DIST' => '/utility/Storage/'
+    ],
+
+    // and when 
+    'PATH_TO_DATABASE' => [
+        // check here first
+        'PATH_TO_DIST' => '/database/'
+    ],
+
+    // and when
+    'SOURCE_BASE_PATH' => [
+        // check here first
+        'PATH_TO_DIST' => '/'
     ]
 ]);
