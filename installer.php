@@ -96,10 +96,10 @@ foreach ($argv as $command) :
 	if (strpos($command, '--version=') !== false) :
 
 		// get the version
-		$command = explode('=', $command);
+		$command_r = explode('=', $command);
 
 		// pass the version
-		$version = end($command);
+		$version = end($command_r);
 
 	endif;
 
@@ -107,10 +107,10 @@ foreach ($argv as $command) :
 	if (strpos($command, '--repo=') !== false) :
 
 		// get repos
-		$command = explode('=', $command);
+		$command_r = explode('=', $command);
 
 		// get the repo
-		$repo = end($command);
+		$repo = end($command_r);
 
 		// convert to an array
 		$updates = explode(',', $repo);
