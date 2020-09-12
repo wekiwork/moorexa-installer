@@ -469,10 +469,7 @@ class MoorexaInstaller
         $installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
 
         // is modular ?
-        if ($modular && $folderName != '') :
-            // go back one step
-            $installerDirectory = '../' . $installerDirectory;
-        endif;
+        if ($modular && $folderName != '') $installerDirectory = WORKING_DIRECTORY . '/../' . $installerDirectory;
 
         // folders we would be creating in the installer directory
         $installerFolders = [
@@ -487,6 +484,8 @@ class MoorexaInstaller
         // change dir
         chdir($directory);
 
+        var_dump($installerDirectory);
+
         // @var bool createFrameworkDir
         $createFrameworkDir = true;
 
@@ -496,8 +495,8 @@ class MoorexaInstaller
         // can we create directory
         if ($createFrameworkDir) :
 
-        // create installer directory and also add core, source, and packager
-        if (!is_dir($installerDirectory)) mkdir($installerDirectory);
+        	// create installer directory and also add core, source, and packager
+        	if (!is_dir($installerDirectory)) mkdir($installerDirectory);
 
 	        // create folders
 	        foreach ($installerFolders as $zipFile) :
