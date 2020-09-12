@@ -498,7 +498,7 @@ class MoorexaInstaller
         $installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
 
         // is modular ?
-        if ($this->modular && $folderName != '') $installerDirectory = WORKING_DIRECTORY . '/../' . $installerDirectory;
+        if ($this->modular && $folderName != '') $installerDirectory = '../' . $installerDirectory;
 
         // folders we would be creating in the installer directory
         $installerFolders = [
