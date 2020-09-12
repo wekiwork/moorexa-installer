@@ -81,6 +81,11 @@ class MoorexaInstaller
     private $agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:68.0) Gecko/20100101 Firefox/68.0';
 
     /**
+     * @var array $updates
+     */
+    private $updates = ['moorexa-installer', 'moorexa-frontend', 'moorexa-source', 'moorexa-core', 'moorexa-micro-service', 'moorexa-packagers'];
+
+    /**
      * @var MoorexaInstaller __construct
      * Load argv, directory etc
      */
@@ -178,6 +183,9 @@ class MoorexaInstaller
      */
     private function loadFlagsAndListen()
     {
+        // @var array $updates
+        $updates = [];
+
         // check for update flag
         foreach ($this->argv as $index => $command) :
 
@@ -229,7 +237,28 @@ class MoorexaInstaller
 
             endif;
 
+            // look for --installer
+            if (strtolower($command) == '--installer') $updates[] = 'moorexa-installer';
+
+            // look for --frontend
+            if (strtolower($command) == '--frontend') $updates[] = 'moorexa-frontend';
+
+            // look for --source
+            if (strtolower($command) == '--source') $updates[] = 'moorexa-source';
+
+            // look for --core
+            if (strtolower($command) == '--core') $updates[] = 'moorexa-core';
+
+            // look for --micro-service
+            if (strtolower($command) == '--micro-service') $updates[] = 'moorexa-micro-service';
+
+            // look for --packager
+            if (strtolower($command) == '--packager') $updates[] = 'moorexa-packagers';
+
         endforeach;
+
+        // update var
+        if (count($updates) > 0) $this->updates = $updates;
 
         // check if init file exists
         if (file_exists($this->initFile) && $this->updateInstaller === false) :
@@ -620,7 +649,7 @@ class MoorexaInstaller
         chdir($currentDirectory);
 
         // command 
-        $command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
+        $command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --repo='.implode(',', $this->updates).' --version='.$version.';';
 
         // run command
         pclose(popen($command, "w"));
@@ -629,11 +658,19 @@ class MoorexaInstaller
         $versionName = preg_replace('/[\s]+/', '', $version);
 
         // files to extract
-        $filesToExtract = [
-            __DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
-            __DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
-            __DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
-        ];
+        $filesToExtract = [];
+
+        // get updates as keys
+        $updatesKey = array_flip($this->updates);
+
+        // add core for replacement
+        if (isset($updatesKey['moorexa-core'])) $filesToExtract[] = __DIR__ . '/storage/' . $versionName . '-moorexaCore.zip';
+
+        // add source for replacement
+        if (isset($updatesKey['moorexa-source'])) $filesToExtract[] = __DIR__ . '/storage/' . $versionName . '-moorexaSource.zip';
+
+        // add packagers for replacement
+        if (isset($updatesKey['moorexa-packagers'])) $filesToExtract[] = __DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip';
 
         // create tmp folder
         $tmpFolder = __DIR__ . '/tmp/';

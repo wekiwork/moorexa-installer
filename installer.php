@@ -83,6 +83,9 @@ $updateInstaller = false;
 // get version from the user
 $version = 'master';
 
+// @var array $updates
+$updates = [];
+
 // check for update flag
 foreach ($argv as $command) :
 
@@ -97,6 +100,20 @@ foreach ($argv as $command) :
 
 		// pass the version
 		$version = end($command);
+
+	endif;
+
+	// look for repo
+	if (strpos($command, '--repo=') !== false) :
+
+		// get repos
+		$command = explode('=', $command);
+
+		// get the repo
+		$repo = end($command);
+
+		// convert to an array
+		$updates = explode(',', $repo);
 
 	endif;
 
@@ -394,6 +411,32 @@ $repos = [
 	'wekiwork/moorexa-source' => 'moorexaSource',
 	'wekiwork/moorexa-packagers' => 'moorexaPackager'
 ];
+
+// manage repo for update
+if ($updateInstaller) :
+
+	// reset repos
+	$repos = [];
+
+	// run through the list of updates
+	$updates = array_flip($updates);
+
+	// check for core
+	if (isset($updates['moorexa-core'])) $repos['wekiwork/moorexa-core'] = 'moorexaCore';
+
+	// check for micro service
+	if (isset($updates['moorexa-micro-service'])) $repos['wekiwork/moorexa-micro-service'] = 'moorexaMicroService';
+
+	// check for frontend
+	if (isset($updates['moorexa-frontend'])) $repos['wekiwork/moorexa-frontend'] = 'moorexaFrontEnd';
+
+	// check for source
+	if (isset($updates['moorexa-source'])) $repos['wekiwork/moorexa-source'] = 'moorexaSource';
+
+	// check for packagers
+	if (isset($updates['moorexa-packagers'])) $repos['wekiwork/moorexa-packagers'] = 'moorexaPackager';
+
+endif;
 
 // completed
 $completed = 0;
