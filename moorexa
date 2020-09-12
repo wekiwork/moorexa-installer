@@ -165,7 +165,7 @@ class MoorexaInstaller
                 $this->directoryFlagUsed = true;
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
             endif;
 
@@ -194,7 +194,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
             endif;
 
@@ -211,7 +211,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
             endif;
 
@@ -225,7 +225,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
             endif;
 
@@ -811,7 +811,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
                 break;
 
@@ -829,7 +829,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
                 // run configuration
                 $loadedConfig = $saveConfigFile($saveConfig);
@@ -864,7 +864,7 @@ class MoorexaInstaller
                 unset($this->argv[$index]);
 
                 // sort
-                sort($this->argv);
+                $this->sort($this->argv);
 
             endif;
 
@@ -888,9 +888,8 @@ class MoorexaInstaller
                     // pull
                     case 'pull': return $this->pullFromSvn($pushDirectory, $loadedConfig, $uniqueName);
 
-                    case null:	
-                        screen_display('Missing SVN (push or pull) Action.', 'error');
-                    break;
+                    // null
+                    case null: return screen_display('Missing SVN (push or pull) Action.', 'error');
 
                     // not a valid action
                     default:
@@ -1254,6 +1253,24 @@ class MoorexaInstaller
         // return array
         return $allfiles;
     }
+
+    /**
+     * @method MoorexaInstaller sort
+     * @param array $argv
+     * @return void
+     */
+    private function sort(&$argv) : void
+    {
+        // @var array $newArgv
+        $newArgv = [];
+
+        // run through
+        foreach ($argv as $data) $newArgv[] = $data;
+
+        // update argv
+        $argv = $newArgv;
+    }
+    
 }
 
 
