@@ -488,7 +488,7 @@ class MoorexaInstaller
         $createFrameworkDir = true;
 
         // do not create directory or overwrite if it exists
-        if ($modular && is_dir($installerDirectory)) $createFrameworkDir = false;
+        if ($this->modular && is_dir($installerDirectory)) $createFrameworkDir = false;
 
         // can we create directory
         if ($createFrameworkDir) :
