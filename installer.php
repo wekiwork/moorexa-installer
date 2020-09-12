@@ -419,8 +419,8 @@ endforeach;
 
 // download other required templates
 $requiredTemplates = [
-	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/.global.config.frontend' => '.global.config.frontend.txt',
-	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/.global.config.service' => '.global.config.service.txt',
+	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/.global.config.frontend.txt' => '.global.config.frontend.txt',
+	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/.global.config.service.txt' => '.global.config.service.txt',
 	'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory' => 'installer_directory'
 ];	
 

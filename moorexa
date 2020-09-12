@@ -1,632 +1,1250 @@
+#!/usr/bin/env php
 <?php
 
 // turn off error reporting
 error_reporting(0);
 
-// get the arguments
-$argv = $_SERVER['argv'];
-
-// save to directory
-$saveToDirectory = $_SERVER['PWD'] . '/';
-
-// directory flag used
-$directoryFlagUsed = false;
-
-// check for update flag
-foreach ($argv as $index => $command) :
-
-	// look for dir
-	if (strpos($command, '--dir=') !== false || strpos($command, '-dir=') !== false) :
-
-		// get the version
-		$command = explode('=', $command);
-
-		// pass the version
-		$saveToDirectory = end($command);
-
-		// remove slashes
-		$saveToDirectory = ltrim(rtrim($saveToDirectory, '/'), '/');
-
-		// make directory if it doesn't exists
-		if (!is_dir($saveToDirectory)) :
-
-			// split string
-			$directoryArray = explode('/', ltrim($saveToDirectory, '/'));
-
-			// created dir
-			$createdDir = '';
-
-			// create directories
-			foreach ($directoryArray as $dir) :
-
-				// append directory
-				$createdDir .= $dir . '/';
-
-				try
-				{
-					// create directory
-					if (!is_dir($createdDir)) mkdir($createdDir);
-				}
-				catch(Throwable $e)
-				{
-
-				}
-
-			endforeach;
-
-		endif;
-
-		// remove index
-		unset($argv[$index]);
-
-		// update 
-		$directoryFlagUsed = true;
-
-		// sort
-		sort($argv);
-
-	endif;
-
-endforeach;
-
-// get the working directory
-define('WORKING_DIRECTORY', $saveToDirectory);
-
-// check for init within current directory
-$initFile = WORKING_DIRECTORY . 'init.php';
-
-// message to screen
-function screen_display($message, string $type = '')
+/**
+ *@package Moorexa Installer
+ *@author Amadi ifeanyi <wekiwork.com>, <amadiify.com>
+*/
+class MoorexaInstaller
 {
-	// reset color
-	$reset = "\033[0m";
+    /**
+     * @var bool $directoryFlagUsed
+     */
+    private $directoryFlagUsed = false;
 
-	// get type
-	$color = $type == 'error' ? "\033[31m" : ($type == 'success' ? "\033[32m" : '');
+    /**
+     * @var string $saveToDirectory
+     */
+    private $saveToDirectory = '';
 
-	// print message
-	fwrite(STDOUT,  $color . $message . $reset . "\n");
-}
+    /**
+     * @var string $argv
+     */
+    private $argv = [];
 
-// read line
-function readInput()
-{
-    if (PHP_OS == "WINNT") return trim(stream_get_line(STDIN, 1024));
+    /**
+     * @var string $command
+     */
+    private $commands = "
+    Try any of this commands:\n
+    (1.) moorexa create 
+    (1.1) moorexa create --version=v1.0
+    (2.) moorexa update 
+    (3.) moorexa create <project-name>
+    (3.1) moorexa create <project-name> --version=v1.0
+    (3.2) moorexa create <project-name> --modular
+    (4.) moorexa create <project-name> -service
+    (4.1) moorexa create <project-name> -service --version=v1.0
+    (4.2) moorexa create <project-name> -service --modular
+    (5.) moorexa create <project-name> -frontend
+    (5.1) moorexa create <project-name> -frontend --version=v1.0
+    (5.2) moorexa create <project-name> -frontend --modular
+    (6.) moorexa svn push <unique-name>
+    (7.) moorexa svn pull <unique-name>
     
-    // not windows
-    return trim(readline());
-}
+    Additional flag 
+    (1.) --dir=<directory name> or -dir=<directory name>
+    (2.) --debug or -debug
+    (3.) --file=<file name> (for svn)
+    (4.) --config (for svn)
+    (6.) --save (for svn)
+    
+    For more information, please visit www.moorexa.com/doc/installer";
 
-/** STACK OVERFLOW (https://stackoverflow.com/questions/20117447/extract-a-whole-directory-with-ziparchive) **/
+    /**
+     * @var bool $updateInstaller
+     */
+    private $updateInstaller = false;
 
-//to get all the recursive paths in a array
-function dirtoarray($dir, $recursive=false) {
-    $array_items = array();
-    if (is_dir($dir)) :
-	    if ($handle = opendir($dir)) {
-	        while (false !== ($file = readdir($handle))) {
-	            if ($file != "." && $file != "..") {
-	                if (is_dir($dir. "/" . $file)) {
-	                    if($recursive) {
-	                        $array_items = array_merge($array_items, dirtoarray($dir. "/" . $file, $recursive));
-	                    }
-	                    else 
-	                    {
-	                    	$array_items[] = $dir . '/' . $file;
-	                    }
-	                } else {
-	                    $file = $dir . "/" . $file;
-	                    $array_items[] = preg_replace("/\/\//si", "/", $file);
-	                }
-	            }
-	        }
-	        closedir($handle);
-	    }
-	endif;
-    return $array_items;
-}
+    /**
+     * @var string $version
+     * version to work with
+     */
+    private $version = 'master';
 
-function rcopy($src, $dst) {
-    if (file_exists ( $dst ))
-        rrmdir ( $dst );
-    if (is_dir ( $src )) {
-        mkdir ( $dst );
-        $files = scandir ( $src );
-        foreach ( $files as $file )
-            if ($file != "." && $file != "..")
-                rcopy ( "$src/$file", "$dst/$file" );
+    /**
+     * @var bool $modular
+     */
+    private $modular = false;
 
-    } else if (file_exists ( $src ))
-        copy ( $src, $dst );
-                    rrmdir ( $src );
-}       
+    /**
+     * @var string $initFile
+     */
+    private $initFile = '';
 
-// Function to remove folders and files 
-function rrmdir($dir) {
-    if (is_dir($dir)) {
-        $files = scandir($dir);
-        foreach ($files as $file)
-            if ($file != "." && $file != "..") rrmdir("$dir/$file");
-        rmdir($dir);
+    /**
+     * @var string $agent
+     */
+    private $agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:68.0) Gecko/20100101 Firefox/68.0';
+
+    /**
+     * @var MoorexaInstaller __construct
+     * Load argv, directory etc
+     */
+    public function __construct()
+    {
+        // load argv
+        $this->argv = $_SERVER['argv'];
+
+        // get base dir
+        $this->saveToDirectory = $_SERVER['PWD'] . '/';
+
+        // get directory for --dir
+        $this->getDirectoryFlag();
+
+        // load helper functions
+        $this->loadHelperFunctions();
+
+        // get the working directory
+        define('WORKING_DIRECTORY', $this->saveToDirectory);
+
+        // check for init within current directory
+        $this->initFile = WORKING_DIRECTORY . 'init.php';
+
+        // load flags
+        if ($this->loadFlagsAndListen() === true) $this->listenForCommand();
     }
-    else if (file_exists($dir)) unlink($dir);
+
+    /**
+     * @method MoorexaInstaller getDirectoryFlag
+     * When --dir flag has been used
+     */
+    private function getDirectoryFlag()
+    {
+        // check for update flag
+        foreach ($this->argv as $index => $command) :
+
+            // look for dir
+            if (strpos($command, '--dir=') !== false || strpos($command, '-dir=') !== false) :
+
+                // get the version
+                $command = explode('=', $command);
+
+                // pass the version
+                $this->saveToDirectory = end($command);
+
+                // remove slashes
+                $this->saveToDirectory = ltrim(rtrim($this->saveToDirectory, '/'), '/');
+
+                // make directory if it doesn't exists
+                if (!is_dir($this->saveToDirectory)) :
+
+                    // split string
+                    $this->directoryArray = explode('/', ltrim($this->saveToDirectory, '/'));
+
+                    // created dir
+                    $createdDir = '';
+
+                    // create directories
+                    foreach ($this->directoryArray as $dir) :
+
+                        // append directory
+                        $createdDir .= $dir . '/';
+
+                        try
+                        {
+                            // create directory
+                            if (!is_dir($createdDir)) mkdir($createdDir);
+                        }
+                        catch(Throwable $e)
+                        {
+
+                        }
+
+                    endforeach;
+
+                endif;
+
+                // remove index
+                unset($this->argv[$index]);
+
+                // update 
+                $this->directoryFlagUsed = true;
+
+                // sort
+                sort($this->argv);
+
+            endif;
+
+        endforeach;
+    }
+
+    /**
+     * @method MoorexaInstaller loadFlagsAndListen
+     * @return mixed
+     */
+    private function loadFlagsAndListen()
+    {
+        // check for update flag
+        foreach ($this->argv as $index => $command) :
+
+            // look for update flag
+            if (strtolower($command) == 'update') $this->updateInstaller = true;
+
+            // look for debug mode
+            if (strpos($command, '--debug') !== false || strpos($command, '-debug') !== false) :
+
+                // show errors
+                error_reporting(E_ALL);
+
+                // remove index
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+            endif;
+
+            // look for version
+            if (strpos($command, '--version=') !== false) :
+
+                // get the version
+                $command = explode('=', $command);
+
+                // pass the version
+                $this->version = end($command);
+
+                // remove index
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+            endif;
+
+            // look for modular flag
+            if (strtolower($command) === '--modular') :
+
+                // using modular
+                $this->modular = true;
+
+                // remove index
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+            endif;
+
+        endforeach;
+
+        // check if init file exists
+        if (file_exists($this->initFile) && $this->updateInstaller === false) :
+
+            // change working directory
+            chdir(WORKING_DIRECTORY);
+
+            // require the assist file
+            return (file_exists('assist') ? include_once 'assist' : null);
+            
+        endif;
+
+        // load default
+        return true;
+    }
+
+    /**
+     * @method MoorexaInstaller loadHelperFunctions
+     * # Functions
+     * 
+     * 1. screen_display
+     * 2. readInput
+     * 3. dirtoarray
+     * 4. rcopy
+     * 5. rrmdir
+     */
+    private function loadHelperFunctions()
+    {
+        // message to screen
+        function screen_display($message, string $type = '')
+        {
+            // reset color
+            $reset = "\033[0m";
+
+            // get type
+            $color = $type == 'error' ? "\033[31m" : ($type == 'success' ? "\033[32m" : '');
+
+            // print message
+            fwrite(STDOUT,  $color . $message . $reset . "\n");
+        }
+
+        // read line
+        function readInput()
+        {
+            if (PHP_OS == "WINNT") return trim(stream_get_line(STDIN, 1024));
+            
+            // not windows
+            return trim(readline());
+        }
+
+        //to get all the recursive paths in a array
+        function dirtoarray($dir, $recursive=false)
+        {
+            $array_items = array();
+            if (is_dir($dir)) :
+                if ($handle = opendir($dir)) {
+                    while (false !== ($file = readdir($handle))) {
+                        if ($file != "." && $file != "..") {
+                            if (is_dir($dir. "/" . $file)) {
+                                if($recursive) {
+                                    $array_items = array_merge($array_items, dirtoarray($dir. "/" . $file, $recursive));
+                                }
+                                else 
+                                {
+                                    $array_items[] = $dir . '/' . $file;
+                                }
+                            } else {
+                                $file = $dir . "/" . $file;
+                                $array_items[] = preg_replace("/\/\//si", "/", $file);
+                            }
+                        }
+                    }
+                    closedir($handle);
+                }
+            endif;
+            return $array_items;
+        }
+
+        // copy files
+        function rcopy($src, $dst)
+        {
+            if (file_exists ( $dst ))
+                rrmdir ( $dst );
+            if (is_dir ( $src )) {
+                mkdir ( $dst );
+                $files = scandir ( $src );
+                foreach ( $files as $file )
+                    if ($file != "." && $file != "..")
+                        rcopy ( "$src/$file", "$dst/$file" );
+
+            } else if (file_exists ( $src ))
+                copy ( $src, $dst );
+                rrmdir ( $src );
+        }       
+
+        // Function to remove folders and files 
+        function rrmdir($dir)
+        {
+            if (is_dir($dir)) {
+                $files = scandir($dir);
+                foreach ($files as $file)
+                    if ($file != "." && $file != "..") rrmdir("$dir/$file");
+                rmdir($dir);
+            }
+            else if (file_exists($dir)) unlink($dir);
+        }
+    }
+
+    /**
+     * @method MoorexaInstaller listenForCommand
+     * @return mixed
+     */
+    private function listenForCommand()
+    {
+        // not within a working project
+        if (count($this->argv) == 1 || (isset($this->argv[1]) && strlen(trim($this->argv[1])) == 0)) return screen_display("\nNot within a working moorexa directory\n
+        {$this->commands}
+        ");
+
+        // try creating directory
+        if (!is_dir(WORKING_DIRECTORY)) pclose(popen("mkdir -p " . WORKING_DIRECTORY . ' > /dev/null &', "w"));
+
+        // check for directory
+        if (is_dir(WORKING_DIRECTORY)) return $this->manageRequests();
+
+        // working directory doesn't exists
+	    screen_display('Could not continue, working directory "'.WORKING_DIRECTORY.'" does not exists.', 'error');
+    }
+
+    /**
+     * @method MoorexaInstaller manageRequests
+     * @return void
+     */
+    private function manageRequests()
+    {
+        // manage request
+        switch(strtolower($this->argv[1])) :
+
+            // create a new project
+            case 'create': return $this->createProject();
+
+            // update code base
+            case 'update': return $this->updateProject();
+
+            // run svn operation
+            case 'svn': return $this->svnOperation();
+
+            // invalid command
+            default:
+                screen_display('Invalid command "'.$argv[1].'"', 'error');
+                screen_display($this->commands);
+        endswitch;
+    }
+
+    /**
+     * @method MoorexaInstaller createProject
+     * @return void
+     */
+    private function createProject()
+    {
+        // get the folder name
+        $folderName = isset($this->argv[2]) ? $this->argv[2] : '';
+
+        // check for '-'
+        if (strpos($folderName, '-') !== false) :
+
+            // push to next argv
+            $this->argv[3] = $folderName;
+
+            // replace name
+            $folderName = '';
+
+        endif;
+
+        // get directory
+        $directory = rtrim(WORKING_DIRECTORY . $folderName, '/') . '/';
+
+        // stop if directory exists
+        if ($folderName != '' && is_dir($directory)) return screen_display('Workspace exists. Failed to overwrite', 'error');
+
+        // create folder if it doesn't exists
+        if (!is_dir($directory)) mkdir($directory);
+
+        // get the create type
+        $createType = isset($this->argv[3]) ? strtolower($this->argv[3]) : 'frontend';
+
+        // remove dash
+        $createType = ltrim($createType, '-');
+
+        // open storage
+        $storage = __DIR__ . '/storage/' . ($createType == 'service' ? $this->version . '-moorexaMicroService' : $this->version . '-moorexaFrontEnd') . '.zip';
+
+        // does file exists
+        if (!file_exists($storage)) return implode("\n", [
+            screen_display('Invalid create type "'.$createType.'"', 'error'),
+            screen_display($this->commands)
+        ]);
+
+        // file exists
+        // open zip manager
+        screen_display('Creating a blank project for "'.$createType.'"', 'success');
+
+        // get size
+        $fileSize = filesize($storage);
+
+        // print size to screen
+        screen_display('Pouring size ' . round($fileSize / 1024) . 'kb into '.$directory.'');
+
+        // load zip archive
+        $zipArchive = new ZipArchive();
+
+        // open file
+        if (!$zipArchive->open($storage)) return screen_display('Could not start extracting. It\'s possible that the .zip file has been corrupted or we dont have full permission to continue. Please run moorexa update or contact support.', 'error');
+
+        // starting extraction
+        screen_display('Starting extraction from cache', 'success');
+
+        // sleep
+        sleep(2);
+
+        // make a tmp direcory
+        if (!is_dir(__DIR__ . '/tmp/')) mkdir(__DIR__ . '/tmp/');
+
+        // start now
+        if ($zipArchive->extractTo(__DIR__ . '/tmp/')) $zipArchive->close();
+
+        // get the folder extracted
+        $folderExtracted = dirtoarray(__DIR__ . '/tmp/')[0];
+
+        // copy files
+        rcopy($folderExtracted, $directory);
+
+        // delete tmp
+        rrmdir($folderExtracted);
+
+        // get the installer directory
+        $installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
+
+        // is modular ?
+        if ($modular && $folderName != '') :
+            // go back one step
+            $installerDirectory = '../' . $installerDirectory;
+        endif;
+
+        // folders we would be creating in the installer directory
+        $installerFolders = [
+            __DIR__ . '/storage/' . $this->version . '-moorexaCore.zip', 
+            __DIR__ . '/storage/' . $this->version . '-moorexaSource.zip', 
+            __DIR__ . '/storage/' . $this->version . '-moorexaPackager.zip', 
+        ];
+
+        // installer directory
+        $moorexaInstallerDirectory = __DIR__;
+        
+        // change dir
+        chdir($directory);
+
+        // create installer directory and also add core, source, and packager
+        if (!is_dir($installerDirectory)) mkdir($installerDirectory);
+
+        // create folders
+        foreach ($installerFolders as $zipFile) :
+
+            // extract zip file into folder
+            $zip = new ZipArchive();
+
+            if ($zip->open($zipFile)) :
+
+                // extract now
+                $zip->extractTo($installerDirectory);
+
+            endif;
+
+            // close file
+            $zip->close();
+
+        endforeach;
+
+        // rename folders
+        $folders = dirtoarray($installerDirectory);
+
+        // loop through
+        foreach ($folders as $folder) :
+
+            // rename folders
+            if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
+            if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
+            if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
+
+        endforeach;
+
+        // add the version
+        file_put_contents($installerDirectory . '/version', $this->version);
+
+        // add global config to working directory
+        $globalConfig = file_get_contents($moorexaInstallerDirectory . '/.global.config.' . $createType . '.txt');
+
+        // update {directory}
+        $globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
+
+        // add to directory
+        file_put_contents('.global.config', $globalConfig);
+
+        // all good
+        screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
+
+        // change directory
+        $changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';
+
+        // final note
+        screen_display("\n".'So what next?'."\n". $changeDirectory .' "moorexa install" to load required dependencies, or "moorexa serve" to start development server if dependencies already exists.'."\n\n".'Thank you for building with Moorexa..');
+
+    }
+    
+    /**
+     * @method MoorexaInstaller updateProject
+     * @return void
+     */
+    private function updateProject()
+    {
+        // ask user 
+        fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we update? (Hit Enter to update your current version) : ');
+
+        // read input
+        $input = readInput();
+
+        // @var string $version
+        $version = $this->version;
+
+        // has global file
+        $globalConfigFile = WORKING_DIRECTORY . '/.global.config';
+
+        // get the installer_directory
+        $installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
+
+        // can continue
+        $canContinue = false;
+
+        // curren dir
+        $currentDirectory = __DIR__;
+
+        // load config
+        if (file_exists($globalConfigFile)) :
+
+            // include file here
+            include_once $globalConfigFile;
+
+            // set the working directory
+            chdir(WORKING_DIRECTORY);
+
+            // get current version
+            if (defined('MOOREXA_INSTALLER_DIR')) :
+
+                // check for version file
+                if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
+
+                $canContinue = true;
+
+            endif;
+                
+        else:
+
+            // do we have such directory ?
+            if (is_dir(WORKING_DIRECTORY . '/' . $installer_directory)) :
+
+                // check for version file
+                if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
+
+                // update action
+                $canContinue = true;
+
+            endif;
+
+        endif;
+
+        // get the version
+        $version = $input == '' ? $version : $input;
+
+        // change dir
+        chdir($currentDirectory);
+
+        // command 
+        $command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
+
+        // run command
+        pclose(popen($command, "w"));
+
+        // clean version
+        $versionName = preg_replace('/[\s]+/', '', $version);
+
+        // files to extract
+        $filesToExtract = [
+            __DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
+            __DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
+            __DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
+        ];
+
+        // create tmp folder
+        $tmpFolder = __DIR__ . '/tmp/';
+
+        // create folder if it doesn't exists
+        if (!is_dir($tmpFolder)) mkdir($tmpFolder);
+
+        // update framework directory
+        if ($canContinue) :
+
+            // updated
+            $updated = 0;
+
+
+            if (file_exists($globalConfigFile)) :
+
+                // load zip archive
+                $zipArchive = new ZipArchive();
+
+                // run update
+                foreach ($filesToExtract as $zipFile) :
+
+                    // open file
+                    if ($zipArchive->open($zipFile)) :
+
+                        // extract files
+                        if ($zipArchive->extractTo($tmpFolder)) :
+
+                            $updated++;
+
+                        endif;
+
+                    endif;
+
+                endforeach;
+
+                // close zip handler
+                $zipArchive->close();
+
+                // set the working directory
+                chdir(WORKING_DIRECTORY);
+
+                // get MOOREXA_INSTALLER_DIR
+                if (defined('MOOREXA_INSTALLER_DIR')) :
+
+                    // update user
+                    screen_display('Updating framework library.');
+
+                    // take a break
+                    sleep(1);
+
+                    // get all folders
+                    $folders = dirtoarray($tmpFolder);
+
+                    // copy all
+                    foreach ($folders as $folder) :
+
+                        if (strpos($folder, 'core')) :
+                            // copy all out
+                            rcopy($folder, MOOREXA_INSTALLER_DIR . '/core');
+                        endif;
+
+                        if (strpos($folder, 'source')) :
+                            // copy all out
+                            rcopy($folder, MOOREXA_INSTALLER_DIR . '/source');
+                        endif;
+
+                        if (strpos($folder, 'packagers')) :
+                            // copy all out
+                            rcopy($folder, MOOREXA_INSTALLER_DIR . '/packagers');
+                        endif;
+
+                        // delete folder
+                        rrmdir($folder);
+
+                    endforeach;
+
+                    // are we good ?
+                    if ($updated == count($filesToExtract)) :
+
+                        screen_display('Update successful');
+
+                        // update version on file
+                        file_put_contents(MOOREXA_INSTALLER_DIR . '/version', $version);
+
+                    else:
+
+                        screen_display('Update was not successful', 'error');
+
+                    endif;
+
+                endif;
+
+            endif;
+
+        else:
+
+            // all good
+            screen_display(($version == 'master' ? 'Master branch was updated successfully' : 'Your version ' . $version . ' was updated successfully'));
+
+        endif;
+    }
+
+    /**
+     * @method MoorexaInstaller svnOperation
+     * @return void
+     */
+    private function svnOperation()
+    {
+        // should we add or pull
+        $action = isset($this->argv[2]) ? $this->argv[2] : null;
+
+        // get the unique name
+        $uniqueName = isset($this->argv[3]) ? $this->argv[3] : null;
+
+        // get the svn.config.txt file
+        $svnConfigFile = __DIR__ . '/svn.config.json';
+
+        // loaded configuration
+        $loadedConfig = null;
+
+        // push directory
+        $pushDirectory = WORKING_DIRECTORY;
+
+        // save config file
+        $saveConfigFile  = function($save = true) use ($svnConfigFile)
+        {
+            // get the user email address
+            fwrite(STDOUT, PHP_EOL . 'Enter email address: ');
+
+            // Get email 
+            $email = readInput();
+
+            // make sure we get something
+            while ($email == '') $email = readInput();
+
+            // get the user password
+            fwrite(STDOUT, PHP_EOL . 'Enter a password: ');
+
+            // Get password 
+            $password = readInput();
+
+            // make sure we get something
+            while ($password == '') $password = readInput();
+
+            // get json data
+            $json = json_encode(['email' => $email, 'password' => $password]);
+
+            // save now
+            if ($save) return file_put_contents($svnConfigFile, $json);
+
+            // return config
+            return $json;
+        };
+
+        // if config file does not exists then do a walk through
+        if (!file_exists($svnConfigFile)) $saveConfigFile();
+
+        // save config
+        $saveConfig = false;
+
+        // look for --save flag
+        foreach ($this->argv as $index => $command):
+
+            // do we have the save flag
+            if (strtolower($command) == '--save') :
+
+                // update bool
+                $saveConfig = true;
+
+                // remove flag
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+                break;
+
+            endif;
+
+        endforeach;
+
+        // look for --config flag
+        foreach ($this->argv as $index => $command):
+
+            // do we have the save flag
+            if (strpos($command, '--config') !== false) :
+
+                // remove flag
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+                // run configuration
+                $loadedConfig = $saveConfigFile($saveConfig);
+
+                break;
+
+            endif;
+
+        endforeach;
+
+        // look for --file flag
+        foreach ($this->argv as $index => $command):
+
+            // look for --file
+            if (strpos($command, '--file=') !== false) :
+
+                // split as an array
+                $command = explode('=', $command);
+
+                // get the filepath
+                $filepath = end($command);
+
+                // change to file
+                if (file_exists($filepath) || is_dir($filepath)) :
+                    // update
+                    $pushDirectory = $filepath;
+                else:
+                    $pushDirectory = null;
+                endif;
+
+                // remove index
+                unset($this->argv[$index]);
+
+                // sort
+                sort($this->argv);
+
+            endif;
+
+        endforeach;
+
+        // load config
+        if ($loadedConfig == null) $loadedConfig = file_get_contents($svnConfigFile);
+
+        // have a unique name?
+        if ($uniqueName !== null) :
+
+            // are we good on that area of dir
+            if ($pushDirectory !== null) :
+
+                // check action
+                switch ($action) :
+
+                    // add 
+                    case 'push': return $this->pushToSvn($pushDirectory, $loadedConfig, $uniqueName);
+
+                    // pull
+                    case 'pull': return $this->pullFromSvn($pushDirectory, $loadedConfig, $uniqueName);
+
+                    case null:	
+                        screen_display('Missing SVN (push or pull) Action.', 'error');
+                    break;
+
+                    // not a valid action
+                    default:
+                        screen_display('Invalid SVN action "'.$action.'", Could not continue.'. "\n {$this->commands}");
+
+                endswitch;
+
+            else:
+
+                // oops
+                screen_display('Invalid directory or file. Could not continue..', 'error');
+
+            endif;
+
+        else:
+
+            // opps 
+            screen_display('Missing SVN Unique name. Process terminated.', 'error');
+
+        endif;
+    }
+
+    /**
+     * @method MoorexaInstaller pushToSvn
+     * @return void
+     */
+    private function pushToSvn(string $pushDirectory, string $loadedConfig, string $uniqueName)
+    {
+        // make svn temp folder
+        $svnTemp = __DIR__ . '/svn_temp/';
+
+        // create 
+        if (!is_dir($svnTemp)) mkdir($svnTemp);
+
+        // create a zip file
+        $zipfile = $svnTemp . '/' . time() . '_.zip';
+
+        // get files and create folder
+        $zip = new ZipArchive();
+
+        // is file ?
+        if (is_file($pushDirectory)) :
+
+            // Create zip file
+            if ($zip->open($zipfile, \ZipArchive::CREATE) === true) :
+
+                chdir(__DIR__);
+            
+                // copy file
+                copy($pushDirectory, basename($pushDirectory));
+                $zip->addFile(basename($pushDirectory));
+                $zip->close();
+
+                // delete file
+                unlink(basename($pushDirectory));
+
+            endif;
+
+        else:
+
+            // add everything to zip 
+            $files = $this->readAllFiles($pushDirectory);
+
+            // Create zip file
+            if ($zip->open($zipfile, \ZipArchive::CREATE) === true) :
+
+                // change directory
+                chdir($pushDirectory);
+                
+                // copy files
+                foreach ($files as $f) :
+
+                    // remove folder
+                    $f = substr($f, strlen($pushDirectory));
+
+                    // now add
+                    $zip->addFile($f);
+
+                endforeach;
+
+                $zip->close();
+
+            endif;
+
+        endif;
+
+        // try to make upload
+        $mime = mime_content_type($zipfile);
+
+        // create file
+        $cfile = '@'.realpath($zipfile).';type='.$mime.';filename='.basename($zipfile);
+
+        if (class_exists('CURLFile')) $cfile = new CURLFile(realpath($zipfile));
+
+        // create file
+        if (function_exists('curl_file_create') && !class_exists('CURLFile')) $cfile = curl_file_create(realpath($zipfile), $mime, basename($zipfile));
+
+        $post = array (
+            'file' => $cfile
+        ); 
+
+        // set the url
+        $url = 'http://svn.moorexa.com/index.php';
+
+        // set the address
+        $address = json_decode($loadedConfig);
+
+        // add the unique identifier
+        $address->identifier = $uniqueName;
+
+        // encode
+        $address = base64_encode(json_encode($address));
+
+        // set the user agent
+        $agent = $this->agent;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+        curl_setopt($ch, CURLOPT_USERAGENT, $agent);   
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: multipart/form-data',
+        "Accept-Address: {$address}",
+        "Accept-Method: push"));   
+        curl_setopt($ch, CURLOPT_TIMEOUT, 86400);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+
+        // about sending
+        screen_display('Connecting to SVN remote server.');
+        sleep(1);
+
+        // generated hash
+        screen_display( md5($address . (time() * mt_rand(1,time()))) . ' => method : push, size : ' . round(filesize($zipfile) / 1024) . 'kb');
+        sleep(1);
+
+        $run = curl_exec($ch); 
+        if (curl_errno($ch)) $msg = curl_error($ch);
+
+        $data = json_decode($run);
+
+        if (is_object($data)) :
+        
+            if ($data->status == 'success'):
+                screen_display("Complete! ".$data->message, 'success');
+            else:
+                screen_display("Failed! ".$data->message, 'error');
+            endif;
+        
+        else:
+        
+            $msg = stripos($msg, 'could not resolve') !== false ? 'Check your internet connection and retry.' : $msg;
+            screen_display("Operation canceled. An error occured." . " $msg" . " " . $run, 'error');
+
+        endif;
+
+        // clean up
+        unlink($zipfile);
+
+    }
+
+    /**
+     * @method MoorexaInstaller pullFromSvn
+     * @return void
+     */
+    private function pullFromSvn(string $pushDirectory, string $loadedConfig, string $uniqueName)
+    {
+        screen_display('Waiting for SVN Server...');
+
+        // set the address
+        $address = json_decode($loadedConfig);
+
+        // add the unique identifier
+        $address->identifier = $uniqueName;
+
+        // encode
+        $address = base64_encode(json_encode($address));
+
+        $ch = curl_init('http://svn.moorexa.com');
+        curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->agent);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        "Accept-Address: {$address}",
+        "Accept-Method: pull",));
+
+        $content = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        $getError = trim($content);
+
+        if (strtolower($getError) == 'not found') :
+        
+            screen_display(strtolower($getError) . ' error returned from our svn server. Please check identifier name or login credentials.', 'error');
+        
+        else:
+        
+            screen_display(round(strlen($content)/1024). 'kb downloaded from @https://svn.moorexa.com');
+
+            // sleep
+            sleep(1);
+
+            // caching begins
+            screen_display('Extracting files to "'.$pushDirectory.'", please wait for the process to complete..');
+
+            // create tmp file
+            $tmpfile = __DIR__ . '/tmpfile.zip';
+
+            $fh = fopen($tmpfile, 'wb');
+            fwrite($fh, $content);
+            fclose($fh);
+
+            // load zip 
+            $zip = new ZipArchive();
+
+            // open file
+            if (!$zip->open($tmpfile)) return screen_display('Could not open zip file. Something went wrong, please try again', 'error');
+
+            // extract files
+            $zip->extractTo($pushDirectory);
+            $zip->close();
+
+            // delete tmp file
+            unlink($tmpfile);
+
+            sleep(1);
+
+            // all good
+            screen_display('All done.', 'success');
+            
+
+        endif;
+    }
+
+    /**
+     * #===================
+     * Helper functions 
+     */
+    private function getAllFiles($dir)
+    {
+        $files = [];
+
+        $files = $this->___allfiles($dir);
+
+        return $files;
+    }
+
+    /**
+     * @method MoorexaInstaller ___allfiles
+     */
+    private function ___allfiles($dir)
+    {
+        $file = [];
+
+        $dir = rtrim($dir, '/');
+
+        $glob = glob($dir.'/{,.}*', GLOB_BRACE);
+
+        if (is_array($glob) && count($glob) > 0)
+        {
+            foreach ($glob as $i => $p)
+            {
+                if (basename($p) != '.' && basename($p) != '..')
+                {
+                    $p = preg_replace("/[\/]{2}/", '/', $p);
+
+                    if (is_file($p))
+                    {
+                        $file[] = $p;
+                    }
+                    elseif (is_dir($p) && basename($p) != '.git')
+                    {
+                        $file[] = $this->___allfiles($p);
+                    }
+                }
+            }
+        }
+
+        //$glob = null;
+
+        return $file;
+    }
+
+    /**
+     * @method MoorexaInstaller reduce_array
+     */
+    private function reduce_array($array)
+    {	
+        $arr = [];
+        $arra = $this->__reduceArray($array, $arr);
+
+        return $arra;
+    }
+
+    /**
+     * @method MoorexaInstaller __reduceArray
+     */
+    private function __reduceArray($array, $arr)
+    {
+
+        if (is_array($array))
+        {
+            foreach ($array as $a => $val)
+            {
+                if (!is_array($val))
+                {
+                    $arr[] = $val;
+                }
+                else
+                {
+                    foreach($val as $v => $vf)
+                    {
+                        if (!is_array($vf))
+                        {
+                            $arr[] = $vf;
+                        }
+                        else
+                        {
+                            $arr = $this->__reduceArray($vf, $arr);
+                        }
+                    }
+                }
+            }
+        }
+
+        return $arr;
+    }
+
+    /**
+     * @method MoorexaInstaller readAllFiles
+     * @return array
+     */
+    private function readAllFiles(string $dir) : array
+    { 
+        $data = glob(rtrim($dir, '/') .'/{,.}*', GLOB_BRACE);
+
+        // @var array $allfiles
+        $allfiles = [];
+
+        foreach ($data as $i => $f) :
+        
+            if (basename($f) != '.' && basename($f) != '..') :
+            
+                // add all files
+                if (is_file($f)) $allfiles[] = $f;
+
+                // add files from within a directory
+                if (is_dir($f) && basename($f) != '.git') :
+                
+                    $dr = $this->getAllFiles($f);
+                    $allfiles = array_merge($allfiles, $this->reduce_array($dr));
+                    
+                endif;
+            
+            endif;
+        
+        endforeach;
+
+        // return array
+        return $allfiles;
+    }
 }
 
-/** STACK OVERFLOW ENDS HERE **/
 
-// @var bool $updateInstaller
-$updateInstaller = false;
-
-// version to work with
-$version = 'master';
-
-// use the modular format
-$modular = false;
-
-// check for update flag
-foreach ($argv as $index => $command) :
-
-	// look for update flag
-	if (strtolower($command) == 'update') $updateInstaller = true;
-
-	// look for debug mode
-	if (strpos($command, '--debug') !== false || strpos($command, '-debug') !== false) :
-
-		// show errors
-		error_reporting(E_ALL);
-
-		// remove index
-		unset($argv[$index]);
-
-		// sort
-		sort($argv);
-
-	endif;
-
-	// look for version
-	if (strpos($command, '--version=') !== false) :
-
-		// get the version
-		$command = explode('=', $command);
-
-		// pass the version
-		$version = end($command);
-
-		// remove index
-		unset($argv[$index]);
-
-		// sort
-		sort($argv);
-
-	endif;
-
-	// look for modular flag
-	if (strtolower($command) === '--modular') :
-
-		// using modular
-		$modular = true;
-
-		// remove index
-		unset($argv[$index]);
-
-		// sort
-		sort($argv);
-
-	endif;
-
-endforeach;
-
-
-// check if init file exists
-if (file_exists($initFile) && $updateInstaller === false) :
-
-	// change working directory
-	chdir(WORKING_DIRECTORY);
-
-	// require the assist file
-	return (file_exists('assist') ? include_once 'assist' : null);
-	
-endif;
-
-// command string 
-$commands = "
-Try any of this commands:\n
-(1.) moorexa create 
-(1.1) moorexa create --version=v1.0
-(2.) moorexa update 
-(3.) moorexa create <project-name>
-(3.1) moorexa create <project-name> --version=v1.0
-(3.2) moorexa create <project-name> --modular
-(4.) moorexa create <project-name> -service
-(4.1) moorexa create <project-name> -service --version=v1.0
-(4.2) moorexa create <project-name> -service --modular
-(5.) moorexa create <project-name> -frontend
-(5.1) moorexa create <project-name> -frontend --version=v1.0
-(5.2) moorexa create <project-name> -frontend --modular
-(6.) moorexa prepare
-
-Additional flag 
-(1.) --dir=<directory name> or -dir=<directory name>
-(2.) --debug or -debug
-
-For more information, please visit www.moorexa.com/doc/installer";
-
-
-// not within a working project
-if (count($argv) == 1 || (isset($argv[1]) && strlen(trim($argv[1])) == 0)) return screen_display("
-Not within a working moorexa directory\n
-{$commands}
-");
-
-// try creating directory
-if (!is_dir(WORKING_DIRECTORY)) pclose(popen("mkdir -p " . WORKING_DIRECTORY . ' > /dev/null &', "w"));
-
-// check for directory
-if (is_dir(WORKING_DIRECTORY)) :
-
-	// manage request
-	switch(strtolower($argv[1])) :
-
-		// create command
-		case 'create':
-
-			// get the folder name
-			$folderName = isset($argv[2]) ? $argv[2] : '';
-
-			// check for '-'
-			if (strpos($folderName, '-') !== false) :
-
-				// push to next argv
-				$argv[3] = $folderName;
-
-				// replace name
-				$folderName = '';
-
-			endif;
-
-			// get directory
-			$directory = rtrim(WORKING_DIRECTORY . $folderName, '/') . '/';
-
-			// stop if directory exists
-			if ($folderName != '' && is_dir($directory)) return screen_display('Workspace exists. Failed to overwrite', 'error');
-
-			// create folder if it doesn't exists
-			if (!is_dir($directory)) mkdir($directory);
-
-			// get the create type
-			$createType = isset($argv[3]) ? strtolower($argv[3]) : 'frontend';
-
-			// remove dash
-			$createType = ltrim($createType, '-');
-
-			// open storage
-			$storage = __DIR__ . '/storage/' . ($createType == 'service' ? $version . '-moorexaMicroService' : $version . '-moorexaFrontEnd') . '.zip';
-
-			// does file exists
-			if (!file_exists($storage)) return implode("\n", [
-				screen_display('Invalid create type "'.$createType.'"', 'error'),
-				screen_display($commands)
-			]);
-
-			// file exists
-			// open zip manager
-			screen_display('Creating a blank project for "'.$createType.'"', 'success');
-
-			// get size
-			$fileSize = filesize($storage);
-
-			// print size to screen
-			screen_display('Pouring size ' . round($fileSize / 1024) . 'kb into '.$directory.'');
-
-			// load zip archive
-			$zipArchive = new ZipArchive();
-
-			// open file
-			if (!$zipArchive->open($storage)) return screen_display('Could not start extracting. It\'s possible that the .zip file has been corrupted or we dont have full permission to continue. Please run moorexa update or contact support.', 'error');
-
-			// starting extraction
-			screen_display('Starting extraction from cache', 'success');
-
-			// sleep
-			sleep(2);
-
-			// make a tmp direcory
-			if (!is_dir(__DIR__ . '/tmp/')) mkdir(__DIR__ . '/tmp/');
-
-			// start now
-			if ($zipArchive->extractTo(__DIR__ . '/tmp/')) $zipArchive->close();
-
-			// get the folder extracted
-			$folderExtracted = dirtoarray(__DIR__ . '/tmp/')[0];
-
-			// copy files
-			rcopy($folderExtracted, $directory);
-
-			// delete tmp
-			rrmdir($folderExtracted);
-
-			// get the installer directory
-			$installerDirectory = file_get_contents(__DIR__ . '/installer_directory');
-
-			// is modular ?
-			if ($modular && $folderName != '') :
-				// go back one step
-				$installerDirectory = '../' . $installerDirectory;
-			endif;
-
-			// folders we would be creating in the installer directory
-			$installerFolders = [
-				__DIR__ . '/storage/' . $version . '-moorexaCore.zip', 
-				__DIR__ . '/storage/' . $version . '-moorexaSource.zip', 
-				__DIR__ . '/storage/' . $version . '-moorexaPackager.zip', 
-			];
-
-			// installer directory
-			$moorexaInstallerDirectory = __DIR__;
-			
-
-			chdir($directory);
-
-			// create installer directory and also add core, source, and packager
-			if (!is_dir($installerDirectory)) mkdir($installerDirectory);
-
-			// create folders
-			foreach ($installerFolders as $zipFile) :
-
-				// extract zip file into folder
-				$zip = new ZipArchive();
-
-				if ($zip->open($zipFile)) :
-
-					// extract now
-					$zip->extractTo($installerDirectory);
-
-				endif;
-
-				// close file
-				$zip->close();
-
-			endforeach;
-
-
-			// rename folders
-			$folders = dirtoarray($installerDirectory);
-
-			// loop through
-			foreach ($folders as $folder) :
-
-				// rename folders
-				if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
-				if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
-				if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
-
-			endforeach;
-
-			// add the version
-			file_put_contents($installerDirectory . '/version', $version);
-
-			// add global config to working directory
-			$globalConfig = file_get_contents($moorexaInstallerDirectory . '/.global.config.' . $createType . '.txt');
-
-			// update {directory}
-			$globalConfig = str_replace('{directory}', $installerDirectory, $globalConfig);
-
-			// add to directory
-			file_put_contents('.global.config', $globalConfig);
-
-			// all good
-			screen_display('Your project has been created successfully in '.WORKING_DIRECTORY.'.', 'success');
-
-			// change directory
-			$changeDirectory = $directory == WORKING_DIRECTORY ? 'run ' : 'cd into "'.$directory.'", and run ';
-
-			// final note
-			screen_display("\n".'So what next?'."\n". $changeDirectory .' "moorexa install" to load required dependencies, or "moorexa serve" to start development server if dependencies already exists.'."\n\n".'Thank you for building with Moorexa..');
-
-		break;
-
-		// prepare
-		case 'prepare':
-
-			// check for folder installation
-			if (!is_dir(__DIR__ . '/storage')) mkdir(__DIR__ . '/storage');
-			
-			// try to download from svn.
-
-		break;
-
-		// update 
-		case 'update':
-
-			// ask user 
-			fwrite(STDOUT, PHP_EOL . 'What version of moorexa should we update? (Hit Enter to update your current version) : ');
-
-			// read input
-			$input = readInput();
-
-			// @var string $version
-			$version = 'master';
-
-			// has global file
-			$globalConfigFile = WORKING_DIRECTORY . '/.global.config';
-
-			// get the installer_directory
-			$installer_directory = file_get_contents('https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer_directory');
-
-			// can continue
-			$canContinue = false;
-
-			// curren dir
-			$currentDirectory = __DIR__;
-
-			// load config
-			if (file_exists($globalConfigFile)) :
-
-				// include file here
-				include_once $globalConfigFile;
-
-				// set the working directory
-				chdir(WORKING_DIRECTORY);
-
-				// get current version
-				if (defined('MOOREXA_INSTALLER_DIR')) :
-
-					// check for version file
-					if (file_exists(MOOREXA_INSTALLER_DIR . '/version')) $version = file_get_contents(trim(MOOREXA_INSTALLER_DIR . '/version'));
-
-					$canContinue = true;
-
-				endif;
-					
-
-			else:
-
-				// do we have such directory ?
-				if (is_dir(WORKING_DIRECTORY . '/' . $installer_directory)) :
-
-					// check for version file
-					if (file_exists(WORKING_DIRECTORY . '/' . $installer_directory . '/version')) $version = file_get_contents(trim(WORKING_DIRECTORY . '/' . $installer_directory . '/version'));
-
-					$canContinue = true;
-
-				endif;
-
-			endif;
-
-			// get the version
-			$version = $input == '' ? $version : $input;
-
-			chdir($currentDirectory);
-
-			// command 
-			$command = 'php -r "copy(\'https://raw.githubusercontent.com/wekiwork/moorexa-installer/master/installer.php\', \'installer.php\');"; php installer.php --update --version='.$version.';';
-
-			// run command
-			pclose(popen($command, "w"));
-
-			// clean version
-			$versionName = preg_replace('/[\s]+/', '', $version);
-
-			// files to extract
-			$filesToExtract = [
-				__DIR__ . '/storage/' . $versionName . '-moorexaCore.zip',
-				__DIR__ . '/storage/' . $versionName . '-moorexaSource.zip',
-				__DIR__ . '/storage/' . $versionName . '-moorexaPackager.zip',
-			];
-
-			// create tmp folder
-			$tmpFolder = __DIR__ . '/tmp/';
-
-			// create folder if it doesn't exists
-			if (!is_dir($tmpFolder)) mkdir($tmpFolder);
-
-			// update framework directory
-			if ($canContinue) :
-
-				// updated
-				$updated = 0;
-
-
-				if (file_exists($globalConfigFile)) :
-
-					// load zip archive
-					$zipArchive = new ZipArchive();
-
-					// run update
-					foreach ($filesToExtract as $zipFile) :
-
-						// open file
-						if ($zipArchive->open($zipFile)) :
-
-							// extract files
-							if ($zipArchive->extractTo($tmpFolder)) :
-
-								$updated++;
-
-							endif;
-
-						endif;
-
-					endforeach;
-
-					// close zip handler
-					$zipArchive->close();
-
-					// set the working directory
-					chdir(WORKING_DIRECTORY);
-
-
-					// get MOOREXA_INSTALLER_DIR
-					if (defined('MOOREXA_INSTALLER_DIR')) :
-
-						// update user
-						screen_display('Updating framework library.');
-
-						// take a break
-						sleep(1);
-
-						// get all folders
-						$folders = dirtoarray($tmpFolder);
-
-						// copy all
-						foreach ($folders as $folder) :
-
-							if (strpos($folder, 'core')) :
-								// copy all out
-								rcopy($folder, MOOREXA_INSTALLER_DIR . '/core');
-							endif;
-
-							if (strpos($folder, 'source')) :
-								// copy all out
-								rcopy($folder, MOOREXA_INSTALLER_DIR . '/source');
-							endif;
-
-							if (strpos($folder, 'packagers')) :
-								// copy all out
-								rcopy($folder, MOOREXA_INSTALLER_DIR . '/packagers');
-							endif;
-
-							// delete folder
-							rrmdir($folder);
-
-						endforeach;
-
-						// are we good ?
-						if ($updated == count($filesToExtract)) :
-
-							screen_display('Update successful');
-
-							// update version on file
-							file_put_contents(MOOREXA_INSTALLER_DIR . '/version', $version);
-
-						else:
-
-							screen_display('Update was not successful', 'error');
-
-						endif;
-
-					endif;
-
-				endif;
-
-			else:
-
-				// all good
-				screen_display(($version == 'master' ? 'Master branch was updated successfully' : 'Your version ' . $version . ' was updated successfully'));
-
-			endif;
-
-		break;
-
-		// invalid command 
-		default:
-			screen_display('Invalid command "'.$argv[1].'"', 'error');
-			screen_display($commands);
-	endswitch;
-
-else:
-
-	// working directory doesn't exists
-	screen_display('Could not continue, working directory "'.WORKING_DIRECTORY.'" does not exists.', 'error');
-
-endif;
+// start applicattion
+new MoorexaInstaller();
