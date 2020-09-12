@@ -487,42 +487,53 @@ class MoorexaInstaller
         // change dir
         chdir($directory);
 
+        // @var bool createFrameworkDir
+        $createFrameworkDir = true;
+
+        // do not create directory or overwrite if it exists
+        if ($modular && is_dir($installerDirectory)) $createFrameworkDir = false;
+
+        // can we create directory
+        if ($createFrameworkDir) :
+
         // create installer directory and also add core, source, and packager
         if (!is_dir($installerDirectory)) mkdir($installerDirectory);
 
-        // create folders
-        foreach ($installerFolders as $zipFile) :
+	        // create folders
+	        foreach ($installerFolders as $zipFile) :
 
-            // extract zip file into folder
-            $zip = new ZipArchive();
+	            // extract zip file into folder
+	            $zip = new ZipArchive();
 
-            if ($zip->open($zipFile)) :
+	            if ($zip->open($zipFile)) :
 
-                // extract now
-                $zip->extractTo($installerDirectory);
+	                // extract now
+	                $zip->extractTo($installerDirectory);
 
-            endif;
+	            endif;
 
-            // close file
-            $zip->close();
+	            // close file
+	            $zip->close();
 
-        endforeach;
+	        endforeach;
 
-        // rename folders
-        $folders = dirtoarray($installerDirectory);
+	        // rename folders
+	        $folders = dirtoarray($installerDirectory);
 
-        // loop through
-        foreach ($folders as $folder) :
+	        // loop through
+	        foreach ($folders as $folder) :
 
-            // rename folders
-            if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
-            if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
-            if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
+	            // rename folders
+	            if (strpos($folder, 'core')) rename($folder, $installerDirectory . '/core');
+	            if (strpos($folder, 'source')) rename($folder, $installerDirectory . '/source');
+	            if (strpos($folder, 'packagers')) rename($folder, $installerDirectory . '/packagers');
 
-        endforeach;
+	        endforeach;
 
-        // add the version
-        file_put_contents($installerDirectory . '/version', $this->version);
+	        // add the version
+	        file_put_contents($installerDirectory . '/version', $this->version);
+
+	    endif;
 
         // add global config to working directory
         $globalConfig = file_get_contents($moorexaInstallerDirectory . '/.global.config.' . $createType . '.txt');
