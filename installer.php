@@ -412,6 +412,9 @@ $repos = [
 	'wekiwork/moorexa-packagers' => 'moorexaPackager'
 ];
 
+// download a fresh copy
+$downloadFreshCopy = true;
+
 // manage repo for update
 if ($updateInstaller) :
 
@@ -436,6 +439,9 @@ if ($updateInstaller) :
 	// check for packagers
 	if (isset($updates['moorexa-packagers'])) $repos['wekiwork/moorexa-packagers'] = 'moorexaPackager';
 
+	// no fetch ??
+	if (isset($updates['no-fetch'])) $downloadFreshCopy = false;
+
 endif;
 
 // completed
@@ -444,15 +450,23 @@ $completed = 0;
 // download repos
 foreach ($repos as $link => $fileName) :
 
-	if (download_from_github($link, $fileName, $version)) :
+	if ($downloadFreshCopy) :
 
-		// all good
-		screen_display('Package ' . $link . '['.$version.'] '.($updateInstaller ? 'updated' : 'downloaded').' successfully', 'success');
+		if (download_from_github($link, $fileName, $version)) :
 
-		// sleep
-		sleep(1);
+			// all good
+			screen_display('Package ' . $link . '['.$version.'] '.($updateInstaller ? 'updated' : 'downloaded').' successfully', 'success');
 
-		// increment
+			// sleep
+			sleep(1);
+
+			// increment
+			$completed++;
+
+		endif;
+
+	else:
+
 		$completed++;
 
 	endif;
@@ -471,25 +485,28 @@ $requiredTemplates = [
 // are we good
 if ($completed == count($repos)) :
 
-	// run download
-	foreach ($requiredTemplates as $url => $fileName) :
+	if ($downloadFreshCopy) :
 
-		// get content
-		$content = file_get_contents($url);
+		// run download
+		foreach ($requiredTemplates as $url => $fileName) :
 
-		// what do we have
-		if (strpos($content, '404') === false) :
+			// get content
+			$content = file_get_contents($url);
 
-			// get file full path
-			$fileName = $homeDirectory . '/moorexa/' . $fileName;
+			// what do we have
+			if (strpos($content, '404') === false) :
 
-			// replace content
-			file_put_contents($fileName, $content);
+				// get file full path
+				$fileName = $homeDirectory . '/moorexa/' . $fileName;
 
-		endif;
+				// replace content
+				file_put_contents($fileName, $content);
 
-	endforeach;
+			endif;
 
+		endforeach;
+
+	endif;
 
 	// delete this installer file
 	unlink(__DIR__ . '/installer.php');

@@ -51,6 +51,14 @@ class MoorexaInstaller
     (3.) --file=<file name> (for svn)
     (4.) --config (for svn)
     (6.) --save (for svn)
+    (7.) --installer (for update)
+    (8.) --core (for update)
+    (9.) --source (for update)
+    (10.) --frontend (for update)
+    (11.) --micro-service (for update)
+    (12.) --packager (for update)
+    (13.) --nofetch (for update)
+
     
     For more information, please visit www.moorexa.com/doc/installer";
 
@@ -255,7 +263,12 @@ class MoorexaInstaller
             // look for --packager
             if (strtolower($command) == '--packager') $updates[] = 'moorexa-packagers';
 
+            // look for --nofetch
+            if (strtolower($command) == '--nofetch') $updates[] = 'no-fetch';
+
         endforeach;
+
+        
 
         // update var
         if (count($updates) > 0) $this->updates = $updates;
